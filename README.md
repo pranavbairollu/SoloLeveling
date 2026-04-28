@@ -44,9 +44,28 @@ Endgame progression system. Clear enough Gates and scale enough Bosses, and slow
 ## 🚀 Tech Stack
 - **Languages:** Kotlin
 - **Architecture:** MVVM, Clean Architecture
-- **Database:** Room Database (Offline First capability)
-- **UI:** Android XML / Material Design
+- **Database:** Room Database (Offline-First capability)
+- **UI:** Android XML / Material Design Components
+- **APIs:** Android SpeechRecognizer API (for Voice Commands)
 - **Platform:** Android 
 
+## 🛠️ Installation & Setup
+To run this project locally, simply clone the repository and open it in Android Studio:
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/pranavbairollu/SoloLeveling.git
+   ```
+2. **Open in Android Studio:**
+   - Launch Android Studio and click on `Open`.
+   - Select the `SoloLeveling` folder.
+3. **Sync & Build:**
+   - Wait for Gradle to finish syncing the dependencies.
+   - Build the project and run it on an Android Emulator or a physical device.
+
+**Note:** Ensure that in-app permissions (such as Microphone for Shadow Extraction) are granted when prompted!
+
+## 📜 Disclaimer
+This project is an unofficial fan-made productivity tool heavily inspired by the "Solo Leveling" series. It is not affiliated with, endorsed by, or sponsored by the original creators, publishers, or copyright holders of Solo Leveling.
+
 ---
-*“There is no turning back. From now on, you will level up.”* 
+*“There is no turning back. From now on, you will level up.”*
