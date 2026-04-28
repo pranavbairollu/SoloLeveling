@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_system_card"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/tvDialogTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SYSTEM WARNING"
+        android:textColor="@color/system_danger_red"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:fontFamily="monospace"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <View
+        android:id="@+id/divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp" 
+        android:background="@color/system_danger_red"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/tvDialogTitle"/>
+
+    <TextView
+        android:id="@+id/tvBossName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="BOSS ID: UNKNOWN"
+        android:textColor="@color/white"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:fontFamily="monospace"
+        android:shadowColor="@color/system_danger_red"
+        android:shadowRadius="10"
+        android:shadowDx="0"
+        android:shadowDy="0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/divider" />
+        
+    <TextView
+        android:id="@+id/tvWarningMsg"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Dungeon entry detected.\nHigh probability of injury.\n\nConfirm combat readiness?"
+        android:textColor="@color/system_text_secondary"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:fontFamily="monospace"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvBossName" />
+
+    <LinearLayout
+        android:id="@+id/layoutStats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:orientation="vertical"
+        android:background="#33000000"
+        android:padding="12dp"
+        app:layout_constraintTop_toBottomOf="@id/tvWarningMsg">
+
+        <TextView
+            android:id="@+id/tvStats1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="STR: 30  |  INT: 20  |  VIT: 20"
+            android:textColor="@color/system_neon_blue"
+            android:textSize="14sp"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:layout_marginBottom="8dp"/>
+            
+        <TextView
+            android:id="@+id/tvStats2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="AGI: 10  |  CHR: 0   |  LUK: 0"
+            android:textColor="@color/system_neon_blue"
+            android:textSize="14sp"
+            android:fontFamily="monospace"
+            android:gravity="center"/>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnEngage"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="ENGAGE BOSS"
+        android:backgroundTint="@color/system_danger_red"
+        android:textColor="@android:color/white"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layoutStats"/>
+
+    <TextView
+        android:id="@+id/btnRetreat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:text="RETREAT"
+        android:textColor="@android:color/darker_gray"
+        android:fontFamily="monospace"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/btnEngage"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

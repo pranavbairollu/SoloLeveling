@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#D9000000">
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="32dp"
+        app:cardBackgroundColor="@color/black"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="16dp"
+        app:contentPadding="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+        
+        <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_system_card"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+        
+            <TextView
+                android:id="@+id/tvAvailablePoints"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="AVAILABLE POINTS: 0"
+                android:textColor="@color/system_neon_gold"
+                android:textSize="18sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:text="WARNING: STAT ALLOCATION IS FINAL."
+                 android:textColor="@color/system_danger_red"
+                 android:textSize="12sp"
+                 android:fontFamily="monospace"
+                 android:gravity="center"
+                 android:layout_marginBottom="24dp"/>
+        
+            <!-- Strength (Fitness) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+                <TextView android:text="STR" android:textColor="@color/white" android:fontFamily="monospace" android:layout_width="60dp" android:layout_height="wrap_content" android:textSize="14sp"/>
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="end|center_vertical">
+                    <TextView android:id="@+id/tvStrVal" android:text="10" android:textColor="@color/white" android:fontFamily="monospace" android:textSize="16sp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="16dp"/>
+                    <Button android:id="@+id/btnStrPlus" style="@style/Widget.AppCompat.Button.Small" android:text="+" android:layout_width="48dp" android:layout_height="wrap_content" android:background="@drawable/bg_button_system" android:textColor="@color/system_neon_blue" android:textSize="16sp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Intelligence (Knowledge) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+                <TextView android:text="INT" android:textColor="@color/white" android:fontFamily="monospace" android:layout_width="60dp" android:layout_height="wrap_content" android:textSize="14sp"/>
+                <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="end|center_vertical">
+                    <TextView android:id="@+id/tvIntVal" android:text="10" android:textColor="@color/white" android:fontFamily="monospace" android:textSize="16sp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="16dp"/>
+                    <Button android:id="@+id/btnIntPlus" style="@style/Widget.AppCompat.Button.Small" android:text="+" android:layout_width="48dp" android:layout_height="wrap_content" android:background="@drawable/bg_button_system" android:textColor="@color/system_neon_blue" android:textSize="16sp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Agility (Awareness) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+                <TextView android:text="AGI" android:textColor="@color/white" android:fontFamily="monospace" android:layout_width="60dp" android:layout_height="wrap_content" android:textSize="14sp"/>
+                 <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="end|center_vertical">
+                    <TextView android:id="@+id/tvAwaVal" android:text="10" android:textColor="@color/white" android:fontFamily="monospace" android:textSize="16sp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="16dp"/>
+                    <Button android:id="@+id/btnAwaPlus" style="@style/Widget.AppCompat.Button.Small" android:text="+" android:layout_width="48dp" android:layout_height="wrap_content" android:background="@drawable/bg_button_system" android:textColor="@color/system_neon_blue" android:textSize="16sp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Vitality (Discipline) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+                <TextView android:text="VIT" android:textColor="@color/white" android:fontFamily="monospace" android:layout_width="60dp" android:layout_height="wrap_content" android:textSize="14sp"/>
+                 <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="end|center_vertical">
+                    <TextView android:id="@+id/tvDiscVal" android:text="10" android:textColor="@color/white" android:fontFamily="monospace" android:textSize="16sp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="16dp"/>
+                    <Button android:id="@+id/btnDiscPlus" style="@style/Widget.AppCompat.Button.Small" android:text="+" android:layout_width="48dp" android:layout_height="wrap_content" android:background="@drawable/bg_button_system" android:textColor="@color/system_neon_blue" android:textSize="16sp"/>
+                </LinearLayout>
+            </LinearLayout>
+            
+            <!-- Charisma -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+                <TextView android:text="CHR" android:textColor="@color/white" android:fontFamily="monospace" android:layout_width="60dp" android:layout_height="wrap_content" android:textSize="14sp"/>
+                 <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="end|center_vertical">
+                    <TextView android:id="@+id/tvChrVal" android:text="10" android:textColor="@color/white" android:fontFamily="monospace" android:textSize="16sp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="16dp"/>
+                    <Button android:id="@+id/btnChrPlus" style="@style/Widget.AppCompat.Button.Small" android:text="+" android:layout_width="48dp" android:layout_height="wrap_content" android:background="@drawable/bg_button_system" android:textColor="@color/system_neon_blue" android:textSize="16sp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Luck -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="24dp">
+                <TextView android:text="LUK" android:textColor="@color/white" android:fontFamily="monospace" android:layout_width="60dp" android:layout_height="wrap_content" android:textSize="14sp"/>
+                 <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="end|center_vertical">
+                    <TextView android:id="@+id/tvLukVal" android:text="10" android:textColor="@color/white" android:fontFamily="monospace" android:textSize="16sp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="16dp"/>
+                    <Button android:id="@+id/btnLukPlus" style="@style/Widget.AppCompat.Button.Small" android:text="+" android:layout_width="48dp" android:layout_height="wrap_content" android:background="@drawable/bg_button_system" android:textColor="@color/system_neon_blue" android:textSize="16sp"/>
+                </LinearLayout>
+            </LinearLayout>
+            
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="2">
+                
+                <TextView
+                    android:id="@+id/btnCancelStats"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="48dp"
+                    android:text="CANCEL"
+                    android:gravity="center"
+                    android:fontFamily="monospace"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/system_danger_red"
+                    android:background="@drawable/bg_button_system"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:id="@+id/btnConfirmStats"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="48dp"
+                    android:text="CONFIRM"
+                    android:gravity="center"
+                    android:fontFamily="monospace"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/system_neon_blue"
+                    android:background="@drawable/bg_button_system"
+                    android:clickable="true"
+                    android:focusable="true"/>
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+</androidx.constraintlayout.widget.ConstraintLayout>

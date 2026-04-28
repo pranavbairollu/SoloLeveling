@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Glow/Stroke Layer -->
+    <item>
+        <shape>
+            <solid android:color="@color/system_danger_red" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+    
+    <!-- Inner Background Layer (Black) -->
+    <item android:top="2dp" android:bottom="2dp" android:left="2dp" android:right="2dp">
+        <shape>
+            <solid android:color="#F0000000" />
+            <corners android:radius="2dp" />
+        </shape>
+    </item>
+</layer-list>

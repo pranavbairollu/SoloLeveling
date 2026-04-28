@@ -1,0 +1,434 @@
+package com.example.sololeveling.ui.dashboard
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
+import com.example.sololeveling.data.entity.GateEntity
+import com.example.sololeveling.data.entity.QuestEntity
+import com.example.sololeveling.data.entity.UserEntity
+import com.example.sololeveling.data.repository.GateRepository
+import com.example.sololeveling.data.repository.QuestRepository
+import com.example.sololeveling.data.repository.UserRepository
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
+
+import com.example.sololeveling.data.repository.BossRepository
+import com.example.sololeveling.data.repository.ShadowRepository
+
+class MainViewModel(
+    private val userRepository: UserRepository,
+    private val questRepository: QuestRepository,
+    private val gateRepository: GateRepository,
+    private val bossRepository: BossRepository,
+    private val shadowRepository: ShadowRepository
+) : ViewModel() {
+
+    val user: LiveData<UserEntity?> = userRepository.userFlow.asLiveData()
+    val dailyQuests: LiveData<List<QuestEntity>> = questRepository.getTodayQuests().asLiveData()
+    val activeGate: LiveData<GateEntity?> = gateRepository.activeGate.asLiveData()
+    
+    // One-shot event for UI (Penalty Triggered)
+    private val _penaltyEvent = androidx.lifecycle.MutableLiveData<Boolean>()
+    val penaltyEvent: LiveData<Boolean> = _penaltyEvent
+    
+    // Gate Events
+    private val _gateEnteredEvent = androidx.lifecycle.MutableLiveData<Boolean>()
+    val gateEnteredEvent: LiveData<Boolean> = _gateEnteredEvent
+    
+    private val _systemResetEvent = androidx.lifecycle.MutableLiveData<Boolean>()
+    val systemResetEvent: LiveData<Boolean> = _systemResetEvent
+
+    init {
+        viewModelScope.launch {
+            gateRepository.initializeGates()
+            checkDailyCompliance()
+            
+            val user = userRepository.getCurrentUser()
+            val level = user?.level ?: 1
+            questRepository.generateDailyQuestsIfNeeded(level)
+            
+            shadowRepository.generateDailyShadowQuests()
+        }
+    }
+    
+    private suspend fun checkDailyCompliance() {
+        val user = userRepository.getCurrentUser() ?: return
+        val today = getTodayDate()
+        
+        // Check for Gate Timeout
+        val activeGate = gateRepository.getActiveGateSync()
+        if (activeGate != null && !activeGate.isCleared && !activeGate.isFailed) {
+             if (System.currentTimeMillis() > activeGate.endTimestamp) {
+                 // Monarch Immunity
+                 if (user.isMonarch) {
+                     // Auto-clear or just ignore? User request: "Gate failures do NOT apply penalties."
+                     // Logic: If time runs out, it's failed but NO PENALTY.
+                     gateRepository.updateGate(activeGate.copy(isActive = false, isFailed = true))
+                     return 
+                 }
+                 
+                 // Time ran out!
+                 failGate(activeGate, user)
+                 return // Explicit return as penalty applied inside
+             }
+        }
+        
+        // Monarch Immunity to Daily Quest Miss
+        if (user.isMonarch) return
+        
+        // If last active was not today (checking if we missed yesterday or prior)
+        if (user.lastActiveDate < today) {
+            val failed = questRepository.hasIncompleteQuests(user.lastActiveDate)
+            
+            if (failed) {
+                applyPenalty(user)
+                // Shadow Failure Logic
+                shadowRepository.processDailyFailure(user)
+                
+                // Endurance Loss
+                val reset = userRepository.decreaseEndurance(user)
+                if (reset) {
+                    performSystemReset(user)
+                    return
+                }
+                
+                // If Gate Active -> It Fails too
+                if (activeGate != null && !activeGate.isCleared && !activeGate.isFailed) {
+                     failGate(activeGate, user)
+                }
+            }
+            
+            // Update last active date to today
+            userRepository.updateUser(userRepository.getCurrentUser()?.copy(lastActiveDate = today) ?: return)
+        }
+    }
+    
+    private suspend fun failGate(gate: GateEntity, user: UserEntity) {
+        if (user.isMonarch) return // Immunity
+        
+        // Apply Heavy Penalty
+        // XP Reset to 0
+        // Disc -5
+        val newDisc = (user.discipline - 5).coerceAtLeast(0)
+        
+        // Recalculate Max HP due to VIT loss
+        val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc)
+        val newEndurance = (user.endurance - 1).coerceAtMost(newMaxHp).coerceAtLeast(0)
+        
+        val penalizedUser = user.copy(
+            currentXP = 0,
+            discipline = newDisc,
+            endurance = newEndurance,
+            maxEndurance = newMaxHp
+        )
+        userRepository.updateUser(penalizedUser)
+        
+        // Mark Gate Failed
+        val failedGate = gate.copy(
+            isActive = false,
+            isFailed = true,
+            cooldownEnd = System.currentTimeMillis() + (7 * 24 * 60 * 60 * 1000L)
+        )
+        gateRepository.updateGate(failedGate)
+        
+        _penaltyEvent.value = true // Reuse penalty dialog
+    }
+    
+    private suspend fun applyPenalty(user: UserEntity) {
+        if (user.isMonarch) return // Immunity
+        
+        // Calculate Reduction (VIT)
+        val reductionPct = com.example.sololeveling.util.StatCalculator.calculatePenaltyReduction(user.discipline)
+        val baseDuration = 12 * 60 * 60 * 1000L // 12 Hours
+        val reducedDuration = (baseDuration * (1f - reductionPct)).toLong()
+        
+        val newXp = (user.currentXP * 0.7).toLong()
+        val newDisc = (user.discipline - 3).coerceAtLeast(0)
+        val penaltyEnd = System.currentTimeMillis() + reducedDuration
+        
+        // Recalculate Max HP due to VIT loss
+        val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc)
+        val newEndurance = user.endurance.coerceAtMost(newMaxHp)
+        
+        val penalizedUser = user.copy(
+            currentXP = newXp,
+            discipline = newDisc,
+            penaltyEndTime = penaltyEnd,
+            maxEndurance = newMaxHp,
+            endurance = newEndurance
+        )
+        userRepository.updateUser(penalizedUser)
+        _penaltyEvent.value = true
+    }
+    
+    fun enterGate(gate: GateEntity) {
+        viewModelScope.launch {
+            gateRepository.enterGate(gate)
+            _gateEnteredEvent.value = true
+        }
+    }
+
+    fun completeQuest(quest: QuestEntity) {
+        if (quest.isCompleted) return
+        
+        viewModelScope.launch {
+             mutex.withLock {
+                 // Re-check inside lock
+                 // Since we don't have getQuestById handy exposed or it's costly, we rely on the DB transaction implicitly if we used @Transaction. 
+                 // But manual mutex checks memory state? 
+                 // Actually `quest` passed in is from Adapter. 
+                 // Best effort: Check if it's already done in Repo?
+                 // Or just proceed. The lock prevents TWO `completeQuest` calls from reading the SAME user state and writing concurrent updates.
+                 
+                 val currentUser = userRepository.getCurrentUser() ?: return@withLock
+                 
+                 // Check Penalty Lock
+                 if (System.currentTimeMillis() < currentUser.penaltyEndTime) {
+                     return@withLock
+                 }
+                 
+                 // Check completions (double check)
+                 // Assuming we can't easily check DB state here without query.
+                 // We proceeded.
+                 
+                questRepository.markQuestComplete(quest)
+                shadowRepository.processQuestCompletion(quest)
+                
+                val incompleteCount = questRepository.getIncompleteCount(quest.date)
+                if (incompleteCount == 0) {
+                    userRepository.processDailyEnduranceGain(currentUser)
+                }
+                
+                // XP Calculation with Fitness/Knowledge Multiplier
+                val xpMultiplier = com.example.sololeveling.util.StatCalculator.calculateXpMultiplier(currentUser.fitness, currentUser.knowledge)
+                val bonusXp = (quest.xpReward * xpMultiplier).toLong()
+                
+                var newXp = currentUser.currentXP + bonusXp
+                var newLevel = currentUser.level
+                var requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, currentUser.knowledge)
+                var unspentPoints = currentUser.unspentPoints
+                
+                // Level Up Check
+                while (newXp >= requiredXp) {
+                    newXp -= requiredXp
+                    newLevel++
+                    requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, currentUser.knowledge)
+                    unspentPoints += 3
+                }
+    
+                var userUpdate = currentUser.copy(
+                    level = newLevel,
+                    currentXP = newXp,
+                    unspentPoints = unspentPoints
+                )
+                
+                // Apply Stat specific rewards
+                userUpdate = when (quest.linkedStat) {
+                    "STR", "Fitness", "FITNESS", "SHADOW_STR", "SHADOW_FIT" -> userUpdate.copy(fitness = userUpdate.fitness + quest.statReward)
+                    "INT", "Knowledge", "KNOWLEDGE", "SHADOW_INT", "SHADOW_KNL" -> userUpdate.copy(knowledge = userUpdate.knowledge + quest.statReward)
+                    "DISC", "Discipline", "DISCIPLINE", "SHADOW_DISC" -> userUpdate.copy(discipline = userUpdate.discipline + quest.statReward)
+                    else -> userUpdate
+                }
+                
+                userRepository.updateUser(userUpdate)
+                checkGateProgress()
+            }
+        }
+    }
+    
+    private suspend fun checkGateProgress() {
+        val today = getTodayDate()
+        val incomplete = questRepository.hasIncompleteQuests(today)
+        if (!incomplete) {
+            // All Done!
+            val gate = gateRepository.getActiveGateSync() ?: return
+            
+            // Simplified: Increment daysCompleted. 
+            val newDays = gate.daysCompleted + 1
+            if (newDays >= gate.durationDays) {
+                // Success!
+                val successGate = gate.copy(
+                    isActive = false,
+                    isCleared = true,
+                    daysCompleted = newDays
+                )
+                gateRepository.updateGate(successGate)
+                
+                // Update User: Flag Gate Cleared
+                val currentUser = userRepository.getCurrentUser()
+                if (currentUser != null) {
+                    userRepository.updateUser(currentUser.copy(hasClearedGateSincePromotion = true))
+                }
+                
+                // Check Promotion
+                checkPromotionEligibility()
+                
+            } else {
+                 gateRepository.updateGate(gate.copy(daysCompleted = newDays))
+            }
+        }
+    }
+    
+    private val _promotionEvent = androidx.lifecycle.MutableLiveData<Boolean>()
+    val promotionEvent: LiveData<Boolean> = _promotionEvent
+
+    private val _monarchEvent = androidx.lifecycle.MutableLiveData<Boolean>()
+    val monarchEvent: LiveData<Boolean> = _monarchEvent
+    
+    // Concurrency Safety
+    private val mutex = kotlinx.coroutines.sync.Mutex()
+
+    fun resetPenaltyEvent() { _penaltyEvent.value = false }
+    fun resetSystemResetEvent() { _systemResetEvent.value = false }
+    fun resetPromotionEvent() { _promotionEvent.value = false }
+    fun resetMonarchEvent() { _monarchEvent.value = false }
+    fun resetGateEnteredEvent() { _gateEnteredEvent.value = false }
+
+    private fun checkPromotionEligibility() {
+        viewModelScope.launch {
+            val user = userRepository.getCurrentUser() ?: return@launch
+            
+            // Monarch Check
+            if (user.rank == "S" && user.hasDefeatedBossSincePromotion) { 
+                 _monarchEvent.value = true
+                 return@launch
+            }
+            
+            // Criteria
+            val gateDone = user.hasClearedGateSincePromotion
+            val bossDone = user.hasDefeatedBossSincePromotion
+            if (!gateDone || !bossDone) return@launch
+            
+            val nextRank = getNextRank(user.rank) ?: return@launch
+            if (nextRank == "MONARCH") return@launch 
+            
+            val requiredLevel = getRequiredLevelForRank(nextRank)
+            
+            if (user.level >= requiredLevel) {
+                _promotionEvent.value = true
+            }
+        }
+    }
+
+    
+    fun promoteToMonarch() {
+         viewModelScope.launch {
+            val user = userRepository.getCurrentUser() ?: return@launch
+            val promotedUser = user.copy(
+                rank = "MONARCH",
+                isMonarch = true,
+                hasClearedGateSincePromotion = false,
+                hasDefeatedBossSincePromotion = false
+            )
+            userRepository.updateUser(promotedUser)
+         }
+    }
+    
+    fun promoteUser() {
+        viewModelScope.launch {
+            val user = userRepository.getCurrentUser() ?: return@launch
+            val nextRank = getNextRank(user.rank) ?: return@launch
+            
+            val promotedUser = user.copy(
+                rank = nextRank,
+                hasClearedGateSincePromotion = false,
+                hasDefeatedBossSincePromotion = false,
+                currentXP = user.currentXP + 5000 // Bonus XP
+            )
+            userRepository.updateUser(promotedUser)
+            
+            // Unlock Content
+            unlockContentForRank(nextRank)
+        }
+    }
+    
+    private fun getNextRank(current: String): String? {
+        return when (current) {
+            "E" -> "D"
+            "D" -> "C"
+            "C" -> "B"
+            "B" -> "A"
+            "A" -> "S"
+            "S" -> "MONARCH"
+            else -> null
+        }
+    }
+    
+    private fun getRequiredLevelForRank(rank: String): Int {
+        return when (rank) {
+            "D" -> 5
+            "C" -> 10
+            "B" -> 20
+            "A" -> 30
+            "S" -> 50
+            else -> 999
+        }
+    }
+    
+    private suspend fun unlockContentForRank(rank: String) {
+        // Delegate to Repos
+        gateRepository.unlockGatesForRank(rank)
+        // bossRepository.unlockBossesForRank(rank) // BossRepo needs update
+        bossRepository.unlockBossesForRank(rank) 
+    }
+    
+    private suspend fun performSystemReset(user: UserEntity) {
+        userRepository.performSystemReset(user)
+        shadowRepository.reduceAllShadowsLoyalty()
+        
+        // Fail active gate
+        val activeGate = gateRepository.getActiveGateSync()
+        if (activeGate != null) {
+             val failedGate = activeGate.copy(
+                isActive = false,
+                isFailed = true,
+                cooldownEnd = System.currentTimeMillis() + (7 * 24 * 60 * 60 * 1000L)
+            )
+            gateRepository.updateGate(failedGate)
+        }
+        
+        _systemResetEvent.value = true
+    }
+    
+    private fun getTodayDate(): Long {
+        val calendar = java.util.Calendar.getInstance()
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        calendar.set(java.util.Calendar.MINUTE, 0)
+        calendar.set(java.util.Calendar.SECOND, 0)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
+        return calendar.timeInMillis
+    }
+    
+    fun allocatePoints(str: Int, int: Int, disc: Int, awk: Int) {
+        viewModelScope.launch {
+            mutex.withLock {
+                val user = userRepository.getCurrentUser() ?: return@withLock
+                val totalCost = str + int + disc + awk
+                
+                if (user.unspentPoints >= totalCost) {
+                    val newStr = user.fitness + str
+                    val newInt = user.knowledge + int
+                    val newDisc = user.discipline + disc 
+                    val newAwk = user.awareness + awk 
+                    
+                    // Recalculate Max HP (VIT)
+                    val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc)
+                    val hpDiff = newMaxHp - user.maxEndurance
+                    val newHp = (user.endurance + hpDiff).coerceAtMost(newMaxHp) 
+                    
+                    val updatedUser = user.copy(
+                        fitness = newStr,
+                        knowledge = newInt,
+                        discipline = newDisc,
+                        awareness = newAwk,
+                        unspentPoints = user.unspentPoints - totalCost,
+                        maxEndurance = newMaxHp,
+                        endurance = newHp
+                    )
+                    userRepository.updateUser(updatedUser)
+                }
+            }
+        }
+    }
+}

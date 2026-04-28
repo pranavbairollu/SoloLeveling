@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- System Colors -->
+    <color name="system_background_dark">#05050A</color>
+    <color name="system_blue">#40C4FF</color>
+    <color name="system_blue_dim">#0091EA</color>
+    <color name="system_red">#FF1744</color>
+    <color name="system_text_primary">#E0E0E0</color>
+    <color name="system_text_secondary">#B0BEC5</color>
+    
+    <!-- Rank Colors -->
+    <color name="rank_e">#BDBDBD</color>
+    <color name="rank_s">#FFD700</color>
+    <!-- Neon System Palette -->
+    <color name="system_neon_blue">#00E5FF</color>
+    <color name="system_neon_purple">#D500F9</color>
+    <color name="system_neon_gold">#FFD600</color>
+    <color name="system_danger_red">#FF1744</color>
+    <color name="system_success_green">#00E676</color>
+    <color name="system_neon_green">#69F0AE</color>
+    <color name="system_grid_lines">#20FFFFFF</color>
+    <color name="monarch_purple">#AA00FF</color>
+</resources>

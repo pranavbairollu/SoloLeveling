@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    android:padding="16dp">
+
+    <!-- Background Particles -->
+    <com.example.sololeveling.ui.common.ParticleView
+        android:id="@+id/particleView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.5"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Top Status Bar -->
+    <TextView
+        android:id="@+id/tvPlayerLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="PLAYER NAME"
+        android:fontFamily="monospace"
+        android:textColor="@color/system_text_secondary"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvPlayerName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="PRANAV"
+        android:fontFamily="monospace"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvPlayerLabel" />
+
+    <TextView
+        android:id="@+id/tvRank"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="E-RANK"
+        android:fontFamily="monospace"
+        android:textColor="@color/system_text_secondary"
+        android:textSize="14sp"
+        android:padding="4dp"
+        android:background="@drawable/bg_system_card"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvLevel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="LEVEL 1"
+        android:fontFamily="monospace"
+        android:textColor="@color/system_neon_blue"
+        android:textSize="24sp"
+        android:layout_marginTop="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvRank" />
+        
+    <!-- Divider -->
+    <View
+        android:id="@+id/divider1"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/system_grid_lines"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/tvLevel" />
+
+    <!-- XP Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="EXP"
+        android:textColor="@color/system_text_secondary"
+        android:fontFamily="monospace"
+        android:textSize="10sp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/divider1" />
+        
+    <TextView
+        android:id="@+id/tvXpText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0 / 100"
+        android:textColor="@color/white"
+        android:fontFamily="monospace"
+        android:textSize="10sp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/divider1" />
+
+    <ProgressBar
+        android:id="@+id/progressBarXP"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:layout_marginTop="4dp"
+        android:progressDrawable="@drawable/bg_system_card" 
+        android:progressTint="@color/system_neon_blue"
+        app:layout_constraintTop_toBottomOf="@id/tvXpText" />
+        
+    <!-- Main Stats Grid (Clickable for Allocation) -->
+    <LinearLayout
+        android:id="@+id/statsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="16dp"
+        android:padding="16dp"
+        android:background="@drawable/bg_system_card"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintTop_toBottomOf="@id/progressBarXP">
+
+        <TextView
+            android:id="@+id/tvStatsHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PLAYER STATUS"
+            android:textColor="@color/system_text_secondary"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:textStyle="bold" />
+            
+        <View
+            android:id="@+id/statsDivider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp" 
+            android:background="@color/system_grid_lines"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="12dp"/>
+
+        <TextView
+             android:id="@+id/tvEnd"
+             android:text="HP: 100/100"
+             android:textColor="@color/system_neon_green"
+             android:textSize="16sp"
+             android:fontFamily="monospace"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:gravity="center"
+             android:layout_marginTop="8dp"
+             android:layout_marginBottom="12dp"
+             app:layout_constraintTop_toBottomOf="@id/statsDivider"/>
+
+        <!-- Row 1: Strength & Intelligence -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2"
+            android:layout_marginBottom="8dp">
+            
+            <TextView android:id="@+id/tvStr" android:text="STR: 10" android:textColor="@color/white" android:textSize="14sp" android:fontFamily="monospace" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"/>
+            <TextView android:id="@+id/tvInt" android:text="INT: 10" android:textColor="@color/white" android:textSize="14sp" android:fontFamily="monospace" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="end"/>
+        </LinearLayout>
+
+        <!-- Row 2: Agility & Vitality -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2"
+            android:layout_marginBottom="8dp">
+            
+            <TextView android:id="@+id/tvAwa" android:text="AGI: 10" android:textColor="@color/white" android:textSize="14sp" android:fontFamily="monospace" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"/>
+            <TextView android:id="@+id/tvDisc" android:text="VIT: 10" android:textColor="@color/white" android:textSize="14sp" android:fontFamily="monospace" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="end"/>
+        </LinearLayout>
+        
+        <!-- Row 3: Charisma & Luck -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2">
+            
+            <TextView android:id="@+id/tvChr" android:text="CHR: 10" android:textColor="@color/white" android:textSize="14sp" android:fontFamily="monospace" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"/>
+            <TextView android:id="@+id/tvLuk" android:text="LUK: 10" android:textColor="@color/white" android:textSize="14sp" android:fontFamily="monospace" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="end"/>
+        </LinearLayout>
+        
+        <TextView
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:text="[ TAP TO MANAGE ]"
+             android:gravity="center"
+             android:textColor="@color/system_text_secondary"
+             android:textSize="10sp"
+             android:fontFamily="monospace"
+             android:layout_marginTop="16dp"/>
+
+    </LinearLayout>
+
+    <!-- Navigation Buttons -->
+    <LinearLayout
+        android:id="@+id/navContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:weightSum="3"
+        app:layout_constraintTop_toBottomOf="@id/statsContainer">
+
+        <TextView
+            android:id="@+id/btnGates"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="DUNGEONS"
+            android:gravity="center"
+            android:fontFamily="monospace"
+            android:textColor="@color/system_neon_blue"
+            android:background="@drawable/bg_button_system"
+            android:layout_marginEnd="4dp"/>
+
+        <TextView
+            android:id="@+id/btnBoss"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="RAIDS"
+            android:gravity="center"
+            android:fontFamily="monospace"
+            android:textColor="@color/system_danger_red"
+            android:background="@drawable/bg_button_system"
+            android:layout_marginEnd="4dp"/>
+
+        <TextView
+            android:id="@+id/btnShadows"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="SHADOWS"
+            android:gravity="center"
+            android:fontFamily="monospace"
+            android:textColor="@color/system_neon_purple"
+            android:background="@drawable/bg_button_system"/>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvDailyTimer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="[ TIME REMAINING: 12:00:00 ]"
+        android:fontFamily="monospace"
+        android:textColor="#FF3B30"
+        android:textSize="14sp"
+        android:layout_marginTop="24dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/navContainer" />
+
+    <TextView
+        android:id="@+id/tvDailyQuestsTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="DAILY QUESTS"
+        android:fontFamily="monospace"
+        android:textColor="@color/white"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvDailyTimer" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvQuests"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:background="#00000000"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvDailyQuestsTitle"
+        tools:listitem="@layout/item_quest" />
+
+    <!-- Penalty Overlay -->
+    <View
+        android:id="@+id/vPenaltyBorder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_penalty_border"
+        android:visibility="gone"
+        android:alpha="0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:elevation="10dp"/>
+
+    <!-- Level Up Ceremony Overlay -->
+    <View
+        android:id="@+id/vLevelUpOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC000000"
+        android:visibility="gone"
+        android:alpha="0"
+        android:elevation="20dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <ImageView
+        android:id="@+id/vLevelUpBurst"
+        android:layout_width="400dp"
+        android:layout_height="400dp"
+        android:src="@drawable/bg_levelup_burst"
+        android:visibility="gone"
+        android:alpha="0"
+        android:elevation="21dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/layoutLevelUpText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        android:elevation="22dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvSystemLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SYSTEM MESSAGE"
+            android:fontFamily="monospace"
+            android:textColor="@color/system_text_secondary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvLevelUpMsg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="LEVEL HAS INCREASED."
+            android:fontFamily="monospace"
+            android:textColor="@color/system_neon_blue"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

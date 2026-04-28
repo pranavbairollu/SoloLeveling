@@ -1,0 +1,79 @@
+<resources>
+    <string name="app_name">Solo Leveling</string>
+    
+    <!-- General -->
+    <string name="btn_next">Next</string>
+    <string name="btn_back">Back</string>
+    <string name="btn_review">Review</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_save">Save</string>
+    
+    <!-- Splash -->
+    <string name="system_boot">SYSTEM BOOT...</string>
+    
+    <!-- Setup: Role Selection -->
+    <string name="setup_step_1">Step 1: Awakening</string>
+    <string name="setup_choose_class">Choose your Class</string>
+    <string name="setup_class_desc">This will determine your initial stats, quests, and path.</string>
+    <string name="class_student">Student</string>
+    <string name="class_student_focus">Focus: Knowledge &amp; Discipline</string>
+    <string name="class_athlete">Athlete</string>
+    <string name="class_athlete_focus">Focus: Fitness &amp; Discipline</string>
+    <string name="class_executive">Executive</string>
+    <string name="class_executive_focus">Focus: Charisma &amp; Awareness</string>
+    <string name="class_custom">Custom</string>
+    <string name="class_custom_desc">Build your own path.</string>
+    
+    <!-- Setup: Architect -->
+    <string name="setup_step_2">Step 2: The Architect</string>
+    <string name="setup_architect_title">The Architect</string>
+    <string name="setup_architect_subtitle">Review and customize your System.</string>
+    <string name="header_quests">Quests</string>
+    <string name="header_gates">Gates</string>
+    <string name="header_bosses">Bosses</string>
+    <string name="header_shadows">Shadows</string>
+    <string name="header_monarch">Monarch</string>
+    
+    <!-- Setup: Contract -->
+    <string name="setup_step_3">Step 3: The Contract</string>
+    <string name="contract_title">The Contract</string>
+    <string name="contract_system_init">System Initialized.</string>
+    <string name="contract_selected_class">Selected Class:</string>
+    <string name="contract_loading">Loading...</string>
+    <string name="contract_goal">Goal:</string>
+    <string name="contract_monarch_goal">Become the Monarch</string>
+    <string name="contract_terms">By accepting, you agree to follow the System\'s guidance. Failure to complete daily quests will result in penalties.</string>
+    <string name="contract_accept">I accept the terms of the System</string>
+    <string name="contract_initializing">Initializing System...</string>
+    <string name="msg_system_awakened">System Awakened.</string>
+    
+    <!-- Gate Activity -->
+    <string name="gate_default_name">Unknown Gate</string>
+    <string name="gate_warning_red">WARNING: RED GATE DETECTED</string>
+    <string name="gate_status_survive">SURVIVE</string>
+    <string name="gate_warning_retreat">RETREAT IS IMPOSSIBLE.\nLEAVING THIS SCREEN WILL CAUSE INSTANT FAILURE.</string>
+    <string name="btn_surrender">Accept Failure (Surrender)</string>
+    <string name="gate_cleared">GATE CLEARED</string>
+    <string name="gate_rewards_granted">Gate Cleared! Rewards Granted.</string>
+    <string name="gate_failed_prefix">FAILED: %1$s</string>
+    <string name="gate_reason_surrender">Surrender</string>
+    <string name="gate_reason_focus_lost">Focus Lost (Backgrounded)</string>
+    <string name="gate_reason_collapsed">Gate Collapsed</string>
+    <string name="msg_retreat_impossible">RETREAT IS IMPOSSIBLE.</string>
+    
+    <!-- Shadow Activity -->
+    <string name="shadow_prompt">Speak the command to extract the shadow.</string>
+    <string name="shadow_command_hint">"ARISE"</string>
+    <string name="shadow_status_listening">Listening...</string>
+    <string name="shadow_status_say_arise">Say \'ARISE\'...</string>
+    <string name="shadow_status_processing">Processing...</string>
+    <string name="shadow_status_error">Error recognizing. Try again.</string>
+    <string name="shadow_status_incorrect">Command incorrect.</string>
+    <string name="shadow_status_success">ARISE SUCCESSFUL</string>
+    <string name="shadow_already_unlocked">Already Resurrected</string>
+    <string name="shadow_unlocked_toast">Shadow Unlocked!</string>
+    <string name="shadow_permission_required">Permission required to speak the command.</string>
+    <string name="shadow_no_recognition">Voice recognition not available on this device.</string>
+    <string name="btn_retry">Retry</string>
+    
+</resources>
