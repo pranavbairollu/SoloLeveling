@@ -28,8 +28,8 @@ class SetupWelcomeFragment : Fragment(R.layout.fragment_setup_welcome) {
         }
 
         binding.btnStart.setOnClickListener {
-            // Navigate to Contract (Name Entry)
-            findNavController().navigate(R.id.action_welcome_to_contract)
+            // Navigate to Role Selection
+            findNavController().navigate(R.id.action_welcome_to_roleSelection)
         }
     }
 }

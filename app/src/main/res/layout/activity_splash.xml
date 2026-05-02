@@ -13,27 +13,40 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:text="SYSTEM ONLINE"
-        android:textColor="@color/system_blue"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:text="SYSTEM BOOT"
+        android:textColor="@color/system_neon_blue"
+        app:layout_constraintBottom_toTopOf="@id/tvBootLogs"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.4"
-        tools:text="SYSTEM ONLINE\nPLAYER DETECTED" />
+        app:layout_constraintVertical_chainStyle="packed"
+        tools:text="SYSTEM BOOT" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnAccept"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <TextView
+        android:id="@+id/tvBootLogs"
+        android:layout_width="0dp"
+        android:layout_height="200dp"
         android:layout_marginTop="32dp"
-        android:text="ACCEPT AUTHORITY"
+        android:fontFamily="monospace"
+        android:gravity="start"
+        android:padding="8dp"
         android:textColor="@color/system_blue"
-        app:strokeColor="@color/system_blue"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/tvSystemMessage"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toTopOf="@id/pbBoot"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/tvSystemMessage"
+        tools:text="> SCANNING DNA...\n> PLAYER DETECTED\n> INITIALIZING MONARCH PROTOCOL..." />
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/pbBoot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="32dp"
+        app:indicatorColor="@color/system_neon_blue"
+        app:trackColor="#10FFFFFF"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvBootLogs" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

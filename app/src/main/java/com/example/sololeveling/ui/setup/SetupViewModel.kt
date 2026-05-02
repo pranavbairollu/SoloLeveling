@@ -104,7 +104,7 @@ class SetupViewModel(
 
     // PHASE 3: The Contract (Confirmation)
     fun confirmSetup() {
-        if (_setupState.value is SetupState.Saving) return
+        if (_setupState.value is SetupState.Saving || _setupState.value is SetupState.Success) return
         
         // Validation (Bulletproof)
         if (playerName.isBlank()) {
@@ -119,8 +119,26 @@ class SetupViewModel(
                 // 1. Initialize User
                 val statFocus = ClassManager.getClassStatFocus(_selectedClass.value)
                 
-                // CRITICAL: Ensure Defaults for Level/Rank/HP are respected or explicitly set.
-                // UserEntity defaults: HP=100 (Validated in Task 1).
+                // Starting Stats with Class Modifiers
+                var startFitness = 10
+                var startKnowledge = 10
+                var startDiscipline = 10
+                var startAwareness = 10
+                var startCharisma = 10
+                var startLuck = 10
+
+                statFocus.forEach { (priority, statName) ->
+                    val bonus = if (priority == "Primary") 5 else 3
+                    when (statName) {
+                        "Fitness" -> startFitness += bonus
+                        "Knowledge" -> startKnowledge += bonus
+                        "Discipline" -> startDiscipline += bonus
+                        "Awareness" -> startAwareness += bonus
+                        "Charisma" -> startCharisma += bonus
+                        "Luck" -> startLuck += bonus
+                    }
+                }
+
                 val newUser = UserEntity(
                     id = 1, // Singleton
                     username = playerName,
@@ -128,14 +146,14 @@ class SetupViewModel(
                     rank = "E",
                     currentXP = 0,
                     unspentPoints = 0,
-                    fitness = 10,  // Base Stats
-                    knowledge = 10,
-                    discipline = 10,
-                    awareness = 10,
-                    charisma = 10, // New Stat
-                    luck = 10,      // New Stat
-                    endurance = 100, // Explicit 100
-                    maxEndurance = 100, // Explicit 100
+                    fitness = startFitness,
+                    knowledge = startKnowledge,
+                    discipline = startDiscipline,
+                    awareness = startAwareness,
+                    charisma = startCharisma,
+                    luck = startLuck,
+                    endurance = 100,
+                    maxEndurance = 100,
                     onboardingCompleted = true
                 ) 
                 

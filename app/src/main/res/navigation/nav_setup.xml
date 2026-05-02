@@ -11,20 +11,10 @@
         android:label="Awakening"
         tools:layout="@layout/fragment_setup_welcome">
         <action
-            android:id="@+id/action_welcome_to_contract"
-            app:destination="@id/setupContractFragment"
+            android:id="@+id/action_welcome_to_roleSelection"
+            app:destination="@id/roleSelectionFragment"
             app:popUpTo="@id/setupWelcomeFragment"
             app:popUpToInclusive="true"/>
-    </fragment>
-
-    <fragment
-        android:id="@+id/setupContractFragment"
-        android:name="com.example.sololeveling.ui.setup.SetupContractFragment"
-        android:label="The Contract"
-        tools:layout="@layout/fragment_setup_contract">
-        <action
-            android:id="@+id/action_contract_to_roleSelection"
-            app:destination="@id/roleSelectionFragment" />
     </fragment>
 
     <fragment
@@ -33,7 +23,17 @@
         android:label="Select Role"
         tools:layout="@layout/fragment_role_selection">
         <action
-            android:id="@+id/action_roleSelection_to_setupEditor"
+            android:id="@+id/action_roleSelection_to_contract"
+            app:destination="@id/setupContractFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/setupContractFragment"
+        android:name="com.example.sololeveling.ui.setup.SetupContractFragment"
+        android:label="The Contract"
+        tools:layout="@layout/fragment_setup_contract">
+        <action
+            android:id="@+id/action_contract_to_setupEditor"
             app:destination="@id/setupEditorFragment" />
     </fragment>
 

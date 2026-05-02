@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import com.example.sololeveling.R
@@ -11,6 +13,8 @@ import com.example.sololeveling.databinding.ActivitySetupBinding
 import com.example.sololeveling.data.db.SystemDatabase
 import com.example.sololeveling.data.repository.*
 import com.example.sololeveling.data.pref.UserPreferences
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 class SetupActivity : AppCompatActivity() {
 
@@ -66,18 +70,18 @@ class SetupActivity : AppCompatActivity() {
                     binding.btnBack.visibility = View.GONE
                     binding.btnNext.visibility = View.GONE
                 }
-                R.id.setupContractFragment -> {
+                R.id.roleSelectionFragment -> {
                     binding.progressIndicator.visibility = View.VISIBLE
                     binding.tvStepTitle.visibility = View.VISIBLE
-                    updateStep(1, "Step 1: The Contract")
-                    binding.btnBack.visibility = View.VISIBLE
-                    binding.btnNext.visibility = View.GONE // Handled by "Accept" button inside fragment
-                }
-                R.id.roleSelectionFragment -> {
-                    updateStep(2, "Step 2: Role Selection")
+                    updateStep(1, "Step 1: Role Selection")
                     binding.btnBack.visibility = View.VISIBLE
                     binding.btnNext.visibility = View.VISIBLE
-                    binding.btnNext.text = "Next"
+                    binding.btnNext.text = "Confirm Role"
+                }
+                R.id.setupContractFragment -> {
+                    updateStep(2, "Step 2: The Contract")
+                    binding.btnBack.visibility = View.VISIBLE
+                    binding.btnNext.visibility = View.GONE // Handled by Fragment (Accept Authority)
                 }
                 R.id.setupEditorFragment -> {
                     updateStep(3, "Step 3: Review & Finalize")
@@ -89,19 +93,14 @@ class SetupActivity : AppCompatActivity() {
         }
 
         binding.btnNext.setOnClickListener {
-            // Manual Next handling if fragment doesn't do it
             when (navController.currentDestination?.id) {
-                R.id.roleSelectionFragment -> navController.navigate(R.id.action_roleSelection_to_setupEditor)
+                R.id.roleSelectionFragment -> {
+                    // Logic check: Ensure a class is actually selected? 
+                    // ViewModel has a default, but we could enforce interaction.
+                    navController.navigate(R.id.action_roleSelection_to_contract)
+                }
                 R.id.setupEditorFragment -> {
-                    // Trigger Finish/Confirm
                     viewModel.confirmSetup()
-                    // Observe State in Fragment to Navigate? Or do it here?
-                    // Fragment observes state. Let's let the Fragment handle success navigation or Activity.
-                    // The SetupContractFragment handled logic before. Now SetupEditorFragment probably needs to handle it or we assume ViewModel does it.
-                    // SetupViewModel.confirmSetup() sets state. 
-                    // We need to observe ViewModel state here in Activity to close it? 
-                    // Let's rely on SetupEditorFragment observing it, or add observer here.
-                    observeSetupCompletion()
                 }
             }
         }
@@ -109,23 +108,37 @@ class SetupActivity : AppCompatActivity() {
         binding.btnBack.setOnClickListener {
             navController.navigateUp()
         }
+        
+        observeSetupCompletion()
     }
     
     private fun observeSetupCompletion() {
-        // Simple observer to close activity on success
-        // This might be duplicate if Fragments also observe.
-        // It's safer if Only Activity handles exit or One Fragment.
-        // Let's add it here for robustness.
-        val intent = android.content.Intent(this, com.example.sololeveling.MainActivity::class.java)
-        intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-        
-        // We need a proper observer.
-        // Since `lifecycleScope` is available in AppCompatActivity:
-        // lifecycleScope.launch ...
-        // But implementing full observation here might conflict with Fragment logic if I don't clean up Fragment logic.
-        // Current SetupContractFragment had `observeState()`. EditorFragment might NOT have it.
-        // I should Add `observeState` to SetupEditorFragment or Activity. 
-        // Logic: Activity is safer container.
+        lifecycleScope.launch {
+            repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                viewModel.setupState.collect { state ->
+                    when (state) {
+                        is SetupState.Success -> {
+                            val intent = android.content.Intent(this@SetupActivity, com.example.sololeveling.MainActivity::class.java)
+                            intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            startActivity(intent)
+                            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                            finish()
+                        }
+                        is SetupState.Error -> {
+                            // Handled by fragment
+                        }
+                        is SetupState.Saving -> {
+                            binding.btnNext.isEnabled = false
+                            binding.btnBack.isEnabled = false
+                        }
+                        else -> {
+                            binding.btnNext.isEnabled = true
+                            binding.btnBack.isEnabled = true
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun updateStep(step: Int, title: String) {

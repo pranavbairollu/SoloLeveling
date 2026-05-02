@@ -17,18 +17,33 @@ class SplashActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_splash)
+        val binding = com.example.sololeveling.databinding.ActivitySplashBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         lifecycleScope.launch {
-            // Emulate boot process / animation time
-            delay(2000) 
+            val logs = listOf(
+                "> INITIALIZING SYSTEM BOOT...",
+                "> SCANNING BIOMETRIC DATA...",
+                "> DNA MATCH FOUND: UNKNOWN PLAYER",
+                "> CONNECTING TO THE ARCHITECT...",
+                "> ACCESS GRANTED",
+                "> INITIALIZING MONARCH PROTOCOL...",
+                "> SYSTEM ONLINE"
+            )
+
+            var currentLog = ""
+            for (i in logs.indices) {
+                currentLog += logs[i] + "\n"
+                binding.tvBootLogs.text = currentLog
+                binding.pbBoot.progress = ((i + 1) * 100) / logs.size
+                delay(400) // Delay for each log line
+            }
             
-            // Check usage of Repo directly for simplicity in Refactor or use ViewModel
+            delay(500) // Final pause
+            
             val database = SystemDatabase.getDatabase(applicationContext)
-            val userDao = database.userDao()
-            
             val user = withContext(Dispatchers.IO) {
-                userDao.getUserSync()
+                database.userDao().getUserSync()
             }
             
             val targetIntent = if (user != null && user.onboardingCompleted) {
@@ -38,6 +53,7 @@ class SplashActivity : AppCompatActivity() {
             }
             
             startActivity(targetIntent)
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
             finish()
         }
     }

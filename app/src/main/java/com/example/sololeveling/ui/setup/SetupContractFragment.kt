@@ -32,14 +32,15 @@ class SetupContractFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         viewModel = (requireActivity() as SetupActivity).viewModel
 
+        setupContextUI()
         setupInputValidation()
         
         binding.btnAccept.setOnClickListener {
             val name = binding.etName.text.toString().trim()
-            if (name.isNotEmpty()) {
+            if (name.isNotEmpty() && binding.cbAcceptRules.isChecked) {
                 viewModel.setPlayerName(name)
-                // Navigate to Next Step (Role Selection)
-                findNavController().navigate(com.example.sololeveling.R.id.action_contract_to_roleSelection)
+                // Navigate to Next Step (Review & Finalize)
+                findNavController().navigate(com.example.sololeveling.R.id.action_contract_to_setupEditor)
             }
         }
 
@@ -50,6 +51,23 @@ class SetupContractFragment : Fragment() {
         })
     }
 
+    private fun setupContextUI() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                viewModel.selectedClass.collectLatest { 
+                    binding.tvSelectedClass.text = it.name
+                    val monarch = viewModel.monarch.value
+                    binding.tvMonarchGoal.text = monarch?.victoryCondition ?: "Complete The System"
+                    
+                    val qCount = viewModel.quests.value.size
+                    val gCount = viewModel.gates.value.size
+                    val bCount = viewModel.bosses.value.size
+                    binding.tvEntityCounts.text = "Quests: $qCount | Gates: $gCount | Bosses: $bCount"
+                }
+            }
+        }
+    }
+
     private fun showExitWarning() {
         val dialogView = android.view.LayoutInflater.from(requireContext()).inflate(com.example.sololeveling.R.layout.dialog_system_warning, null)
         
@@ -58,7 +76,6 @@ class SetupContractFragment : Fragment() {
             .setCancelable(false)
             .create()
 
-        // Hide default background to show our system card
         dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
 
         dialogView.findViewById<android.view.View>(com.example.sololeveling.R.id.btnPositive).setOnClickListener {
@@ -73,16 +90,22 @@ class SetupContractFragment : Fragment() {
     }
 
     private fun setupInputValidation() {
-        binding.btnAccept.isEnabled = false // Default disabled
+        binding.btnAccept.isEnabled = false 
         
+        val validate = {
+            val name = binding.etName.text.toString().trim()
+            binding.btnAccept.isEnabled = name.isNotEmpty() && binding.cbAcceptRules.isChecked
+        }
+
         binding.etName.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val input = s?.toString()?.trim() ?: ""
-                binding.btnAccept.isEnabled = input.isNotEmpty()
+                validate()
             }
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
+
+        binding.cbAcceptRules.setOnCheckedChangeListener { _, _ -> validate() }
     }
 
     override fun onDestroyView() {

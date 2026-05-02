@@ -400,17 +400,19 @@ class MainViewModel(
         return calendar.timeInMillis
     }
     
-    fun allocatePoints(str: Int, int: Int, disc: Int, awk: Int) {
+    fun allocatePoints(str: Int, int: Int, disc: Int, awk: Int, chr: Int, luk: Int) {
         viewModelScope.launch {
             mutex.withLock {
                 val user = userRepository.getCurrentUser() ?: return@withLock
-                val totalCost = str + int + disc + awk
+                val totalCost = str + int + disc + awk + chr + luk
                 
                 if (user.unspentPoints >= totalCost) {
                     val newStr = user.fitness + str
                     val newInt = user.knowledge + int
                     val newDisc = user.discipline + disc 
                     val newAwk = user.awareness + awk 
+                    val newChr = user.charisma + chr
+                    val newLuk = user.luck + luk
                     
                     // Recalculate Max HP (VIT)
                     val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc)
@@ -422,6 +424,8 @@ class MainViewModel(
                         knowledge = newInt,
                         discipline = newDisc,
                         awareness = newAwk,
+                        charisma = newChr,
+                        luck = newLuk,
                         unspentPoints = user.unspentPoints - totalCost,
                         maxEndurance = newMaxHp,
                         endurance = newHp

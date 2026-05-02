@@ -52,7 +52,7 @@ class SetupEditorFragment : Fragment() {
                  viewModel.setupState.collectLatest { state ->
                     when (state) {
                         is SetupState.Success -> {
-                            handleSuccess()
+                            android.widget.Toast.makeText(requireContext(), "System Awakened.", android.widget.Toast.LENGTH_SHORT).show()
                         }
                         is SetupState.Error -> {
                             android.widget.Toast.makeText(requireContext(), "Error: ${state.message}", android.widget.Toast.LENGTH_LONG).show()
@@ -81,14 +81,6 @@ class SetupEditorFragment : Fragment() {
         }
     }
     
-    private fun handleSuccess() {
-        android.widget.Toast.makeText(requireContext(), "System Awakened.", android.widget.Toast.LENGTH_SHORT).show()
-        val intent = android.content.Intent(requireContext(), com.example.sololeveling.MainActivity::class.java)
-        intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-        startActivity(intent)
-        requireActivity().finish()
-    }
-
     private fun updateList() {
         adapter.setData(
             viewModel.quests.value,
