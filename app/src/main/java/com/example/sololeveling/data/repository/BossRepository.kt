@@ -12,8 +12,8 @@ class BossRepository(
     val allBosses: Flow<List<BossEntity>> = bossDao.getAllBosses()
 
     suspend fun initializeBosses() {
-        // Only insert if empty? Or replace.
-        // Assuming we want to define the static data.
+        if (bossDao.getBossCount() > 0) return // Safety check
+
         val bosses = listOf(
             BossEntity(
                 id = 1,
@@ -26,38 +26,56 @@ class BossRepository(
                 requiredDiscipline = 20,
                 requiredAwareness = 10,
                 xpReward = 5000,
-                isUnlocked = true // E-Rank Always Unlocked
+                isUnlocked = true
             ),
             BossEntity(
                 id = 2,
-                name = "Tank (Ice Bear)",
-                description = "Alpha of the Ice Bears.",
+                name = "Tank (Shadow Bear Alpha)",
+                description = "Alpha of the Ice Bears. Massive strength requirement.",
                 rank = "C",
-                requiredLevel = 10,
-                requiredFitness = 50,
-                requiredKnowledge = 20,
+                requiredLevel = 15,
+                requiredFitness = 60,
+                requiredKnowledge = 25,
                 requiredDiscipline = 40,
                 requiredAwareness = 15,
-                xpReward = 8000,
-                isUnlocked = false // Start Locked
+                xpReward = 12000,
+                isUnlocked = false
+            ),
+            BossEntity(
+                id = 3,
+                name = "High Orc Shaman Kargalgan",
+                description = "Master of Spells and Protection.",
+                rank = "B",
+                requiredLevel = 30,
+                requiredFitness = 50,
+                requiredKnowledge = 100,
+                requiredDiscipline = 60,
+                requiredAwareness = 30,
+                requiredCharisma = 40,
+                xpReward = 35000,
+                isUnlocked = false
+            ),
+            BossEntity(
+                id = 4,
+                name = "Ant King (Beru)",
+                description = "The absolute apex of the Chimera Ants.",
+                rank = "S",
+                requiredLevel = 70,
+                requiredFitness = 250,
+                requiredKnowledge = 150,
+                requiredDiscipline = 200,
+                requiredAwareness = 100,
+                requiredCharisma = 80,
+                requiredLuck = 50,
+                xpReward = 200000,
+                isUnlocked = false
             )
         )
-        // We use Insert REPLACE. This works fine, but we must be careful not to overwrite user progress (isDefeated).
-        // If we use REPLACE, isDefeated resets to false!
-        // Constraint: We want to Update definitions but KEEP progress.
-        // Better Strategy: Check existence or use INSERT IGNORE logic if Room supported it clearly, usually OnConflict.IGNORE.
-        // Or: Select, if exists, update only definition fields?
-        // For this audit fix, I will stick to REPLACE but note that it might reset progress on app restart if logic runs every time.
-        // Re-reading code: initializeBosses called in init { }. If it resets progress, that's a Critical Bug I should fix too.
-        // Fix: Use INSERT IGNORE via OnConflictStrategy.IGNORE in Dao?
-        // Dao has REPLACE.
-        // I will change logic: Check if empty, then insert.
-        // Or just let it be for now to focus on the requested fix.
-        // Requested Fix: "Implement unlockBossesForRank".
-        
         bossDao.insertBosses(bosses) 
     }
     
+    suspend fun getActiveBoss(): BossEntity? = bossDao.getActiveBoss()
+
     suspend fun unlockBossesForRank(rank: String) {
         bossDao.unlockBossesForRank(rank)
     }

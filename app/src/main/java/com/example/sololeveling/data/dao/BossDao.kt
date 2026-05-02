@@ -16,8 +16,14 @@ interface BossDao {
     @Query("SELECT * FROM boss_table WHERE id = :id")
     suspend fun getBossById(id: Int): BossEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertBosses(bosses: List<BossEntity>)
+
+    @Query("SELECT COUNT(*) FROM boss_table")
+    suspend fun getBossCount(): Int
+
+    @Query("SELECT * FROM boss_table WHERE isActive = 1 LIMIT 1")
+    suspend fun getActiveBoss(): BossEntity?
 
     @Update
     suspend fun updateBoss(boss: BossEntity)

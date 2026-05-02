@@ -30,6 +30,8 @@ data class BossEntity(
     
     val isDefeated: Boolean = false,
     val isUnlocked: Boolean = false,
-    val dueDate: Long = 0L, // Critical Date
-    val cooldownUntil: Long = 0L // Timestamp until boss is available again if failed
+    val isActive: Boolean = false, // Current active raid status
+    val defeatDate: Long = 0L,     // Permanent log of victory
+    val dueDate: Long = 0L,         // Critical Date
+    val cooldownUntil: Long = 0L   // Timestamp until boss is available again if failed
 )

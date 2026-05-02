@@ -24,13 +24,17 @@ class BossViewModel(
     private val _messageEvent = MutableLiveData<String>()
     val messageEvent: LiveData<String> = _messageEvent
     
-    // Result events
     private val _bossResultEvent = MutableLiveData<BossResult>()
     val bossResultEvent: LiveData<BossResult> = _bossResultEvent
     
+    enum class Qualification {
+        QUALIFIED, HIGH_RISK, UNQUALIFIED, ON_COOLDOWN, NO_GATES
+    }
+
     sealed class BossResult {
         object Victory : BossResult()
         object Defeat : BossResult()
+        data class QualificationInfo(val boss: BossEntity, val q: Qualification, val missingStats: List<String>) : BossResult()
     }
 
     init {
@@ -39,87 +43,100 @@ class BossViewModel(
         }
     }
 
-    fun engageBoss(boss: BossEntity) {
+    fun checkBossQualification(boss: BossEntity) {
         viewModelScope.launch {
             val user = userRepository.getCurrentUser() ?: return@launch
             
-            // 1. Check if Gate Cleared
             if (!bossRepository.hasClearedAnyGate()) {
-                _messageEvent.value = "YOU ARE NOT QUALIFIED (NO GATES CLEARED)"
+                _bossResultEvent.value = BossResult.QualificationInfo(boss, Qualification.NO_GATES, emptyList())
                 return@launch
             }
             
-            // 2. Check Cooldown
             if (System.currentTimeMillis() < boss.cooldownUntil) {
-                 _messageEvent.value = "BOSS IS RECOVERING (COOLDOWN)"
-                 return@launch
+                _bossResultEvent.value = BossResult.QualificationInfo(boss, Qualification.ON_COOLDOWN, emptyList())
+                return@launch
             }
-             
-            // 3. Validate Requirements
-            val isQualified = (user.level >= boss.requiredLevel) &&
-                              (user.fitness >= boss.requiredFitness) &&
-                              (user.knowledge >= boss.requiredKnowledge) &&
-                              (user.discipline >= boss.requiredDiscipline)
+
+            val missingStats = mutableListOf<String>()
+            if (user.level < boss.requiredLevel) missingStats.add("Level ${boss.requiredLevel}")
+            if (user.fitness < boss.requiredFitness) missingStats.add("Fitness ${boss.requiredFitness}")
+            if (user.knowledge < boss.requiredKnowledge) missingStats.add("Knowledge ${boss.requiredKnowledge}")
+            if (user.discipline < boss.requiredDiscipline) missingStats.add("Discipline ${boss.requiredDiscipline}")
+            if (user.awareness < boss.requiredAwareness) missingStats.add("Awareness ${boss.requiredAwareness}")
+            if (user.charisma < boss.requiredCharisma) missingStats.add("Charisma ${boss.requiredCharisma}")
+            if (user.luck < boss.requiredLuck) missingStats.add("Luck ${boss.requiredLuck}")
+
+            val q = when {
+                missingStats.isEmpty() -> Qualification.QUALIFIED
+                user.level >= boss.requiredLevel && missingStats.size <= 2 -> Qualification.HIGH_RISK
+                else -> Qualification.UNQUALIFIED
+            }
             
-            if (isQualified) {
-                // Success Logic
-                // Grant Reward
+            _bossResultEvent.value = BossResult.QualificationInfo(boss, q, missingStats)
+        }
+    }
+
+    fun startRaid(boss: BossEntity) {
+        viewModelScope.launch {
+            val active = bossRepository.getActiveBoss()
+            if (active != null) {
+                _messageEvent.value = "A RAID IS ALREADY IN PROGRESS: ${active.name}"
+                return@launch
+            }
+            
+            bossRepository.updateBoss(boss.copy(isActive = true))
+            _messageEvent.value = "RAID COMMENCED: ${boss.name}. THE SYSTEM IS WATCHING."
+        }
+    }
+
+    fun resolveRaid(boss: BossEntity, success: Boolean) {
+        viewModelScope.launch {
+            val user = userRepository.getCurrentUser() ?: return@launch
+            
+            if (success) {
+                // Victory Logic
                 val newXp = user.currentXP + boss.xpReward
-                // Assuming level up handled elsewhere or simplistic add
-                // Ideally, re-use level up logic. For now, just add.
-                
-                val userUpdate = user.copy(currentXP = newXp) // Add logic for promotion later
+                val userUpdate = user.copy(
+                    currentXP = newXp,
+                    hasDefeatedBossSincePromotion = true
+                )
                 userRepository.updateUser(userUpdate)
                 
-                // Mark Boss Defeated
-                bossRepository.updateBoss(boss.copy(isDefeated = true))
+                bossRepository.updateBoss(boss.copy(
+                    isDefeated = true, 
+                    isActive = false, 
+                    defeatDate = System.currentTimeMillis()
+                ))
                 
-                // Shadow Extraction
                 shadowRepository.extractShadow(boss)
-                
-                _messageEvent.value = "BOSS DEFEATED: ${boss.name}. SHADOW EXTRACTION SUCCESSFUL."
+                _messageEvent.value = "MILESTONE ACHIEVED: ${boss.name}. SHADOW EXTRACTED."
                 _bossResultEvent.value = BossResult.Victory
             } else {
                 // Failure Logic
                 if (user.isMonarch) {
-                    _messageEvent.value = "DEFEAT! BUT THE SYSTEM OBEYS. NO PENALTY."
-                    _bossResultEvent.value = BossResult.Defeat // Just return defeat without penalty
+                    bossRepository.updateBoss(boss.copy(isActive = false))
+                    _messageEvent.value = "RAID FAILED. BUT THE MONARCH DOES NOT BEND."
+                    _bossResultEvent.value = BossResult.Defeat
                     return@launch
                 }
 
                 // Penalties
-                val pXp = 0L
-                val pDisc = (user.discipline - 5).coerceAtLeast(0)
-                
-                // Recalculate Max HP due to VIT loss
+                val pDisc = (user.discipline * 0.9).toInt().coerceAtLeast(0)
                 val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(pDisc)
+                val newEnd = (user.endurance * 0.5).toInt().coerceAtMost(newMaxHp).coerceAtLeast(0)
                 
-                // Endurance Loss
-                val reset = userRepository.decreaseEndurance(user)
-                if (reset) {
-                    userRepository.performSystemReset(user)
-                    _messageEvent.value = "SYSTEM RESET TRIGGERED due to Endurance Failure."
-                }
-                
-                val penalized = if (reset) {
-                    userRepository.getCurrentUser()!! // Reload fresh reset user
-                } else {
-                    // Update stats
-                    val newEnd = user.endurance.coerceAtMost(newMaxHp).coerceAtLeast(0)
-                    user.copy(
-                        currentXP = pXp, 
-                        discipline = pDisc,
-                        maxEndurance = newMaxHp,
-                        endurance = newEnd 
-                    )
-                }
+                val penalized = user.copy(
+                    discipline = pDisc,
+                    maxEndurance = newMaxHp,
+                    endurance = newEnd,
+                    currentXP = (user.currentXP * 0.8).toLong() // 20% XP Loss
+                )
                 userRepository.updateUser(penalized)
                 
-                // Boss Cooldown
                 val cooldown = System.currentTimeMillis() + (7 * 24 * 60 * 60 * 1000L)
-                bossRepository.updateBoss(boss.copy(cooldownUntil = cooldown))
+                bossRepository.updateBoss(boss.copy(isActive = false, cooldownUntil = cooldown))
                 
-                _messageEvent.value = "DEFEAT! WEAKNESS DETECTED."
+                _messageEvent.value = "DEFEAT! THE SYSTEM HAS IMPOSED A 7-DAY PENALTY."
                 _bossResultEvent.value = BossResult.Defeat
             }
         }
