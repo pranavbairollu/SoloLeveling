@@ -1,19 +1,23 @@
 package com.example.sololeveling.ui.gate
 
-import android.os.Bundle
-import android.os.CountDownTimer
+import android.content.*
+import android.os.*
 import android.view.View
+import android.view.WindowManager
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.sololeveling.R
 import com.example.sololeveling.databinding.ActivityGateBinding
 import com.example.sololeveling.data.db.SystemDatabase
 import com.example.sololeveling.data.entity.GateEntity
+import com.example.sololeveling.service.GateFocusService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 
 class GateActivity : AppCompatActivity() {
 
@@ -25,218 +29,200 @@ class GateActivity : AppCompatActivity() {
     private var isRedGate: Boolean = false
     private var gate: GateEntity? = null
     
-    private var timer: CountDownTimer? = null
-    private var isSuccess = false
-    private var isFailed = false
+    private var focusService: GateFocusService? = null
+    private var isBound = false
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as GateFocusService.LocalBinder
+            focusService = binder.getService()
+            isBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            isBound = false
+            focusService = null
+        }
+    }
+
+    private val timerReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                GateFocusService.ACTION_TIMER_TICK -> {
+                    val remaining = intent.getLongExtra("REMAINING", 0L)
+                    updateTimerUI(remaining)
+                }
+                GateFocusService.ACTION_GATE_SUCCESS -> handleSuccess()
+                GateFocusService.ACTION_GATE_FAILURE -> {
+                    val reason = intent.getStringExtra("REASON") ?: "Unknown"
+                    handleFailure(reason)
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         binding = ActivityGateBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         gateId = intent.getIntExtra("GATE_ID", -1)
-        isRedGate = intent.getBooleanExtra("IS_RED_GATE", false)
-
+        
         if (gateId == -1) {
             finish()
             return
         }
 
+        // 15% Chance of Red Gate upgrade if not already determined
+        isRedGate = intent.getBooleanExtra("IS_RED_GATE", Random.nextFloat() < 0.15f)
+
         setupUI()
-        startGate()
+        loadGateData()
+        
+        val filter = IntentFilter().apply {
+            addAction(GateFocusService.ACTION_TIMER_TICK)
+            addAction(GateFocusService.ACTION_GATE_SUCCESS)
+            addAction(GateFocusService.ACTION_GATE_FAILURE)
+        }
+        registerReceiver(timerReceiver, filter, RECEIVER_EXPORTED)
     }
 
     private fun setupUI() {
         if (isRedGate) {
-            binding.rootLayout.setBackgroundColor(0xFF330000.toInt()) // Dark Red
-            binding.tvRedGateWarning.visibility = View.VISIBLE
+            applyRedGateAesthetics()
         }
         
         binding.btnSurrender.setOnClickListener {
-            failGate(getString(R.string.gate_reason_surrender))
+            showSurrenderConfirmation()
         }
     }
 
-    private fun startGate() {
+    private fun applyRedGateAesthetics() {
+        binding.rootLayout.setBackgroundColor(0xFF220000.toInt())
+        binding.tvRedGateWarning.visibility = View.VISIBLE
+        binding.tvRedGateWarning.text = "SYSTEM ERROR: RED GATE DETECTED\nSTAKES DOUBLED"
+        binding.tvGateName.setTextColor(0xFFFF0000.toInt())
+        // Pulsing animation could be added here
+    }
+
+    private fun loadGateData() {
         lifecycleScope.launch {
-            gate = withContext(Dispatchers.IO) {
-                gateDao.getGateById(gateId)
-            }
-
-            if (gate == null) {
-                finish()
-                return@launch
-            }
-
-            val currentGate = gate!!
-            binding.tvGateName.text = currentGate.name
-            
-            val now = System.currentTimeMillis()
-
-            // 1. Check if already active
-            if (currentGate.isActive) {
-                // Resume immediately
-                resumeGate(currentGate, now)
-            } else {
-                // 2. Show Confirmation Dialog BEFORE starting
-                showEntryConfirmation(currentGate)
-            }
+            gate = withContext(Dispatchers.IO) { gateDao.getGateById(gateId) }
+            gate?.let {
+                binding.tvGateName.text = it.name
+                if (it.isActive) {
+                    resumeGate(it)
+                } else {
+                    showEntryConfirmation(it)
+                }
+            } ?: finish()
         }
     }
 
     private fun showEntryConfirmation(gate: GateEntity) {
-        val duration = if (gate.durationMillis > 0) 
-            "${TimeUnit.MILLISECONDS.toMinutes(gate.durationMillis)} Minutes" 
-        else "${gate.durationDays} Days"
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("WARNING: GATE ENTRY")
-            .setMessage("Entering ${gate.name} will lock your device for [$duration].\n\nRETREAT IS IMPOSSIBLE.\n\nLeaving the app will cause IMMEDIATE FAILURE.\n\nDo you wish to proceed?")
-            .setPositiveButton("ENTER GATE") { _, _ ->
-                initializeGateStart(gate)
-            }
-            .setNegativeButton("RETREAT") { _, _ ->
-                finish()
-            }
+        val duration = formatDuration(gate.durationMillis)
+        AlertDialog.Builder(this, R.style.Theme_SoloLeveling_Dialog)
+            .setTitle("GATE ENTRY DETECTED")
+            .setMessage("Dungeon: ${gate.name}\nDuration: $duration\n\nWARNING: Leaving this app will cause immediate failure and a 24-hour cooldown.\n\nRETREAT IS IMPOSSIBLE.")
+            .setPositiveButton("ENTER") { _, _ -> startFocusSession(gate) }
+            .setNegativeButton("RETREAT") { _, _ -> finish() }
             .setCancelable(false)
             .show()
     }
 
-    private fun initializeGateStart(gate: GateEntity) {
-        lifecycleScope.launch {
-             val now = System.currentTimeMillis()
-             val durationMillis = if (gate.durationMillis > 0) gate.durationMillis else gate.durationDays * 24 * 60 * 60 * 1000L
-             val endTime = now + durationMillis
-
-             val activeGate = gate.copy(
+    private fun startFocusSession(gate: GateEntity) {
+        val intent = Intent(this, GateFocusService::class.java).apply {
+            putExtra("GATE_ID", gate.id)
+            putExtra("DURATION", gate.durationMillis)
+            putExtra("IS_RED_GATE", isRedGate)
+        }
+        startForegroundService(intent)
+        bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+        
+        lifecycleScope.launch(Dispatchers.IO) {
+            gateDao.updateGate(gate.copy(
                 isActive = true,
-                startTimestamp = now,
-                endTimestamp = endTime
-             )
-             withContext(Dispatchers.IO) {
-                 gateDao.updateGate(activeGate)
-             }
-             this@GateActivity.gate = activeGate
-             startTimer(durationMillis, durationMillis)
+                startTimestamp = System.currentTimeMillis(),
+                endTimestamp = System.currentTimeMillis() + gate.durationMillis
+            ))
         }
     }
 
-    private fun resumeGate(gate: GateEntity, now: Long) {
-         val endTime = gate.endTimestamp
-         val durationMillis = if (gate.durationMillis > 0) gate.durationMillis else gate.durationDays * 24 * 60 * 60 * 1000L
-         val remaining = endTime - now
-         
-         if (remaining <= 0) {
-             finishGateSuccess()
-         } else {
-             startTimer(remaining, durationMillis)
-         }
-    }
-
-    private fun startTimer(millisInFuture: Long, totalDuration: Long) {
-        timer = object : CountDownTimer(millisInFuture, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
-                if (isFinishing || isDestroyed) {
-                    cancel()
-                    return
-                }
-                val hms = String.format("%02d:%02d:%02d", 
-                    TimeUnit.MILLISECONDS.toHours(millisUntilFinished),
-                    TimeUnit.MILLISECONDS.toMinutes(millisUntilFinished) % 60,
-                    TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) % 60)
-                binding.tvTimer.text = hms
-                
-                val progress = (millisUntilFinished.toFloat() / totalDuration.toFloat() * 100).toInt()
-                binding.progressTimer.progress = progress
-            }
-
-            override fun onFinish() {
-                binding.tvTimer.text = "00:00:00"
-                binding.progressTimer.progress = 0
-                finishGateSuccess()
-            }
-        }.start()
-    }
-
-    private fun finishGateSuccess() {
-        if (isFailed) return
-        isSuccess = true
-        binding.tvStatus.text = getString(R.string.gate_cleared)
-        binding.tvStatus.setTextColor(resources.getColor(android.R.color.holo_green_light, null))
-        binding.btnSurrender.visibility = View.GONE
-        
-        Toast.makeText(this, getString(R.string.gate_rewards_granted), Toast.LENGTH_LONG).show()
-        
-        lifecycleScope.launch {
-            gate?.let {
-                val rewardMult = if (isRedGate) 2 else 1
-                val completedGate = it.copy(
-                    isActive = false,
-                    isCleared = true,
-                    xpReward = it.xpReward * rewardMult
-                )
-                withContext(Dispatchers.IO) {
-                    gateDao.updateGate(completedGate)
-                }
-            }
-            kotlinx.coroutines.delay(2000)
-            finish()
+    private fun resumeGate(gate: GateEntity) {
+        val remaining = gate.endTimestamp - System.currentTimeMillis()
+        if (remaining <= 0) {
+            handleSuccess()
+        } else {
+            val intent = Intent(this, GateFocusService::class.java)
+            bindService(intent, serviceConnection, BIND_AUTO_CREATE)
         }
     }
 
-    private fun failGate(reason: String) {
-        if (isSuccess) return
-        isFailed = true
-        timer?.cancel()
+    private fun updateTimerUI(remaining: Long) {
+        val hms = String.format("%02d:%02d:%02d",
+            TimeUnit.MILLISECONDS.toHours(remaining),
+            TimeUnit.MILLISECONDS.toMinutes(remaining) % 60,
+            TimeUnit.MILLISECONDS.toSeconds(remaining) % 60)
+        binding.tvTimer.text = hms
         
-        binding.tvStatus.text = getString(R.string.gate_failed_prefix, reason)
-        binding.tvStatus.setTextColor(resources.getColor(android.R.color.holo_red_light, null))
-        
-        lifecycleScope.launch {
-             gate?.let {
-                val failedGate = it.copy(
-                    isActive = false,
-                    isFailed = true,
-                    cooldownEnd = System.currentTimeMillis() + (24 * 60 * 60 * 1000) // 24h Penalty
-                )
-                withContext(Dispatchers.IO) {
-                    gateDao.updateGate(failedGate)
-                }
-            }
-            kotlinx.coroutines.delay(2000)
-            finish()
-        }
-    }
-
-    override fun onBackPressed() {
-        Toast.makeText(this, getString(R.string.msg_retreat_impossible), Toast.LENGTH_SHORT).show()
-    }
-
-    override fun onResume() {
-        super.onResume()
         gate?.let {
-            if (it.isActive && it.endTimestamp > 0) {
-                 val now = System.currentTimeMillis()
-                 if (now > it.endTimestamp + 5000) { 
-                     if (!isSuccess && !isFailed) {
-                         finishGateSuccess()
-                     }
-                 }
-            }
+            val progress = ((remaining.toFloat() / it.durationMillis.toFloat()) * 100).toInt()
+            binding.progressTimer.progress = progress
         }
+    }
+
+    private fun handleSuccess() {
+        binding.tvStatus.text = "GATE CLEARED"
+        binding.tvStatus.setTextColor(0xFF00FF00.toInt())
+        Toast.makeText(this, "Rewards Granted. XP +${gate?.xpReward?.let { if (isRedGate) it * 2 else it }}", Toast.LENGTH_LONG).show()
+        lifecycleScope.launch {
+            kotlinx.coroutines.delay(2000)
+            finish()
+        }
+    }
+
+    private fun handleFailure(reason: String) {
+        binding.tvStatus.text = "GATE COLLAPSED: $reason"
+        binding.tvStatus.setTextColor(0xFFFF0000.toInt())
+        Toast.makeText(this, "FAILURE. 24H COOLDOWN APPLIED.", Toast.LENGTH_LONG).show()
+        lifecycleScope.launch {
+            kotlinx.coroutines.delay(2000)
+            finish()
+        }
+    }
+
+    private fun showSurrenderConfirmation() {
+        AlertDialog.Builder(this, R.style.Theme_SoloLeveling_Dialog)
+            .setTitle("SURRENDER?")
+            .setMessage("Giving up now will trigger the penalty.")
+            .setPositiveButton("GIVE UP") { _, _ -> focusService?.failGate("SURRENDERED") }
+            .setNegativeButton("KEEP FIGHTING", null)
+            .show()
     }
 
     override fun onStop() {
         super.onStop()
-        if (!isSuccess && !isFinishing) {
-             failGate(getString(R.string.gate_reason_focus_lost))
-        } else if (isFinishing && !isSuccess && !isFailed) {
-             failGate(getString(R.string.gate_reason_collapsed))
+        if (!isFinishing && isBound) {
+            // App backgrounded!
+            focusService?.failGate("FOCUS LOST")
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        timer?.cancel()
+        if (isBound) {
+            unbindService(serviceConnection)
+            isBound = false
+        }
+        unregisterReceiver(timerReceiver)
+    }
+
+    override fun onBackPressed() {
+        Toast.makeText(this, "RETREAT IS IMPOSSIBLE", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun formatDuration(ms: Long): String {
+        return "${TimeUnit.MILLISECONDS.toMinutes(ms)} Minutes"
     }
 }

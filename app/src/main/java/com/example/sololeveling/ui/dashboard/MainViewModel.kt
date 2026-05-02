@@ -271,43 +271,10 @@ class MainViewModel(
                 }
                 
                 userRepository.updateUser(userUpdate)
-                checkGateProgress()
             }
         }
     }
     
-    private suspend fun checkGateProgress() {
-        val today = getTodayDate()
-        val incomplete = questRepository.hasIncompleteQuests(today)
-        if (!incomplete) {
-            // All Done!
-            val gate = gateRepository.getActiveGateSync() ?: return
-            
-            // Simplified: Increment daysCompleted. 
-            val newDays = gate.daysCompleted + 1
-            if (newDays >= gate.durationDays) {
-                // Success!
-                val successGate = gate.copy(
-                    isActive = false,
-                    isCleared = true,
-                    daysCompleted = newDays
-                )
-                gateRepository.updateGate(successGate)
-                
-                // Update User: Flag Gate Cleared
-                val currentUser = userRepository.getCurrentUser()
-                if (currentUser != null) {
-                    userRepository.updateUser(currentUser.copy(hasClearedGateSincePromotion = true))
-                }
-                
-                // Check Promotion
-                checkPromotionEligibility()
-                
-            } else {
-                 gateRepository.updateGate(gate.copy(daysCompleted = newDays))
-            }
-        }
-    }
     
     private val _promotionEvent = androidx.lifecycle.MutableLiveData<Boolean>()
     val promotionEvent: LiveData<Boolean> = _promotionEvent

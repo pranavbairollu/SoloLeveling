@@ -76,4 +76,32 @@ class UserRepository(private val userDao: UserDao) {
         )
         updateUser(resetUser)
     }
+
+    suspend fun grantGateRewards(xpReward: Int) {
+        val user = getCurrentUser() ?: return
+        
+        // XP Calculation with Fitness/Knowledge Multiplier
+        val xpMultiplier = com.example.sololeveling.util.StatCalculator.calculateXpMultiplier(user.fitness, user.knowledge)
+        val bonusXp = (xpReward * xpMultiplier).toLong()
+        
+        var newXp = user.currentXP + bonusXp
+        var newLevel = user.level
+        var requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, user.knowledge)
+        var unspentPoints = user.unspentPoints
+        
+        // Level Up Check
+        while (newXp >= requiredXp) {
+            newXp -= requiredXp
+            newLevel++
+            requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, user.knowledge)
+            unspentPoints += 3
+        }
+
+        updateUser(user.copy(
+            level = newLevel,
+            currentXP = newXp,
+            unspentPoints = unspentPoints,
+            hasClearedGateSincePromotion = true
+        ))
+    }
 }

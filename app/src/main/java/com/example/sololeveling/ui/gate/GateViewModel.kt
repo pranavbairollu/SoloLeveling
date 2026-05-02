@@ -38,6 +38,12 @@ class GateViewModel(
                  _errorEvent.value = "PENALTY ACTIVE - ENTRY DENIED"
                  return@launch
             }
+
+            // Check Gate Cooldown
+            if (System.currentTimeMillis() < gate.cooldownEnd) {
+                 _errorEvent.value = "GATE COLLAPSED - COOLDOWN ACTIVE"
+                 return@launch
+            }
             
             // Check if another gate active (should be handled by UI visibility, but double check)
             val currentActive = gateRepository.getActiveGateSync()

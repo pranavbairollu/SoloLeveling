@@ -16,12 +16,11 @@ class GateRepository(private val gateDao: GateDao) {
     suspend fun enterGate(gate: GateEntity) {
         // Mark active, set timestamps
         val now = System.currentTimeMillis()
-        val end = now + (gate.durationDays * 24 * 60 * 60 * 1000L)
+        val end = now + gate.durationMillis
         val activeGate = gate.copy(
             isActive = true,
             startTimestamp = now,
-            endTimestamp = end,
-            daysCompleted = 0
+            endTimestamp = end
         )
         gateDao.updateGate(activeGate)
     }
@@ -31,45 +30,48 @@ class GateRepository(private val gateDao: GateDao) {
     }
 
     suspend fun initializeGates() {
-        // Pre-populate some gates if empty (check omitted for brevity, assuming run once or insert conflicts replace)
-        // In real app, check ID existence.
-        // ID 1: E-Rank Gate (7 Days)
-        val gates = listOf(
-            GateEntity(
-                id = 1,
-                name = "E-Rank Dungeon: Goblin Cave",
-                description = "Maintain a perfect streak for 7 days.",
-                durationDays = 7,
-                requiredLevel = 1,
-                xpReward = 1000
-            ),
-            GateEntity(
-                id = 2,
-                name = "D-Rank Dungeon: Lizardmen Swamp",
-                description = "Maintain a perfect streak for 14 days.",
-                durationDays = 14,
-                requiredLevel = 5,
-                xpReward = 3000
+        val existing = gateDao.getActiveGate()
+        if (existing == null) {
+            val initialGates = listOf(
+                GateEntity(
+                    id = 1,
+                    name = "E-Rank: Training Ground",
+                    description = "Focus for 10 minutes.",
+                    durationDays = 0,
+                    durationMillis = 10 * 60 * 1000L,
+                    requiredLevel = 1,
+                    xpReward = 500
+                ),
+                GateEntity(
+                    id = 2,
+                    name = "D-Rank: Goblin Hideout",
+                    description = "Focus for 30 minutes.",
+                    durationDays = 0,
+                    durationMillis = 30 * 60 * 1000L,
+                    requiredLevel = 5,
+                    xpReward = 2000
+                )
             )
-        )
-        gateDao.insertGates(gates)
+            gateDao.insertGates(initialGates)
+        }
     }
+
     suspend fun unlockGatesForRank(rank: String) {
         val newGates = when (rank) {
             "D" -> listOf(
-                GateEntity(id=3, name="D-Rank: Stone Golem Pit", description="Maintain a perfect streak for 10 days.", durationDays=10, requiredLevel=5, xpReward=2000)
+                GateEntity(id=3, name="D-Rank: Orc Outpost", description="Focus for 45 minutes.", durationDays=0, durationMillis=45 * 60 * 1000L, requiredLevel=5, xpReward=3500)
             )
             "C" -> listOf(
-                GateEntity(id=4, name="C-Rank: Ice Elf Forest", description="Maintain a perfect streak for 14 days.", durationDays=14, requiredLevel=15, xpReward=5000)
+                GateEntity(id=4, name="C-Rank: Frost Dungeon", description="Focus for 60 minutes.", durationDays=0, durationMillis=60 * 60 * 1000L, requiredLevel=15, xpReward=8000)
             )
             "B" -> listOf(
-                GateEntity(id=5, name="B-Rank: Demon Castle", description="Maintain a perfect streak for 21 days.", durationDays=21, requiredLevel=25, xpReward=10000)
+                GateEntity(id=5, name="B-Rank: Demon Citadel", description="Focus for 90 minutes.", durationDays=0, durationMillis=90 * 60 * 1000L, requiredLevel=25, xpReward=15000)
             )
             "A" -> listOf(
-                GateEntity(id=6, name="A-Rank: Ant Tunnel", description="Maintain a perfect streak for 30 days.", durationDays=30, requiredLevel=40, xpReward=20000)
+                GateEntity(id=6, name="A-Rank: Ant Queen Nest", description="Focus for 120 minutes.", durationDays=0, durationMillis=120 * 60 * 1000L, requiredLevel=40, xpReward=35000)
             )
             "S" -> listOf(
-                GateEntity(id=7, name="S-Rank: Jeju Island", description="Maintain a perfect streak for 50 days.", durationDays=50, requiredLevel=60, xpReward=50000)
+                GateEntity(id=7, name="S-Rank: Jeju Island Raid", description="Focus for 240 minutes.", durationDays=0, durationMillis=240 * 60 * 1000L, requiredLevel=60, xpReward=100000)
             )
             else -> emptyList()
         }

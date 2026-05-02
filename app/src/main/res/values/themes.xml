@@ -28,4 +28,11 @@
         <item name="android:textSize">24sp</item>
         <item name="android:textStyle">bold</item>
     </style>
+
+    <style name="Theme.SoloLeveling.Dialog" parent="Theme.MaterialComponents.DayNight.Dialog">
+        <item name="android:windowBackground">@color/system_background_dark</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textColor">@color/system_text_primary</item>
+        <item name="colorPrimary">@color/system_blue</item>
+    </style>
 </resources>
