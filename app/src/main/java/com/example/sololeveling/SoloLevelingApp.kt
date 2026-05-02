@@ -19,6 +19,6 @@ class SoloLevelingApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Initialization logic if needed
+        com.example.sololeveling.worker.MidnightResetWorker.schedule(this)
     }
 }

@@ -16,6 +16,9 @@ import kotlinx.coroutines.sync.withLock
 import com.example.sololeveling.data.repository.BossRepository
 import com.example.sololeveling.data.repository.ShadowRepository
 
+import com.example.sololeveling.util.QuestSystemManager
+import kotlinx.coroutines.flow.collectLatest
+
 class MainViewModel(
     private val userRepository: UserRepository,
     private val questRepository: QuestRepository,
@@ -23,6 +26,10 @@ class MainViewModel(
     private val bossRepository: BossRepository,
     private val shadowRepository: ShadowRepository
 ) : ViewModel() {
+
+    private val questSystemManager = QuestSystemManager()
+    val timeRemaining = questSystemManager.timeRemaining.asLiveData()
+    val escalationPhase = questSystemManager.currentPhase.asLiveData()
 
     val user: LiveData<UserEntity?> = userRepository.userFlow.asLiveData()
     val dailyQuests: LiveData<List<QuestEntity>> = questRepository.getTodayQuests().asLiveData()
@@ -43,12 +50,39 @@ class MainViewModel(
         viewModelScope.launch {
             gateRepository.initializeGates()
             checkDailyCompliance()
+            checkPenaltyExpiration()
             
             val user = userRepository.getCurrentUser()
             val level = user?.level ?: 1
             questRepository.generateDailyQuestsIfNeeded(level)
             
             shadowRepository.generateDailyShadowQuests()
+            
+            // Start systemic clock
+            launch {
+                while (true) {
+                    val currentUser = userRepository.getCurrentUser()
+                    val today = getTodayDate()
+                    val incomplete = if (currentUser != null) questRepository.hasIncompleteQuests(today) else false
+                    questSystemManager.update(System.currentTimeMillis(), today, incomplete)
+                    
+                    // Trigger Penalty if time just ran out in foreground
+                    if (questSystemManager.currentPhase.value == QuestSystemManager.EscalationPhase.PENALTY && incomplete) {
+                        if (currentUser != null && currentUser.penaltyEndTime < System.currentTimeMillis()) {
+                             applyPenalty(currentUser)
+                        }
+                    }
+                    
+                    kotlinx.coroutines.delay(1000)
+                }
+            }
+        }
+    }
+    
+    private suspend fun checkPenaltyExpiration() {
+        val user = userRepository.getCurrentUser() ?: return
+        if (user.penaltyEndTime > 0 && System.currentTimeMillis() >= user.penaltyEndTime) {
+            userRepository.updateUser(user.copy(penaltyEndTime = 0, penaltyStatReduction = 0))
         }
     }
     
@@ -152,22 +186,15 @@ class MainViewModel(
         val reducedDuration = (baseDuration * (1f - reductionPct)).toLong()
         
         val newXp = (user.currentXP * 0.7).toLong()
-        val newDisc = (user.discipline - 3).coerceAtLeast(0)
         val penaltyEnd = System.currentTimeMillis() + reducedDuration
-        
-        // Recalculate Max HP due to VIT loss
-        val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc)
-        val newEndurance = user.endurance.coerceAtMost(newMaxHp)
         
         val penalizedUser = user.copy(
             currentXP = newXp,
-            discipline = newDisc,
             penaltyEndTime = penaltyEnd,
-            maxEndurance = newMaxHp,
-            endurance = newEndurance
+            penaltyStatReduction = 3 // Subtract 3 from all stats temporarily
         )
         userRepository.updateUser(penalizedUser)
-        _penaltyEvent.value = true
+        _penaltyEvent.postValue(true)
     }
     
     fun enterGate(gate: GateEntity) {

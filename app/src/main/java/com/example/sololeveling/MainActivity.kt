@@ -23,19 +23,15 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var soundManager: com.example.sololeveling.ui.common.SoundManager
 
-    private val timerHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val timerRunnable = object : Runnable {
+    // Escalation State
+    private var recurringHapticHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var recurringHapticRunnable = object : Runnable {
         override fun run() {
-            updateTimer()
-            timerHandler.postDelayed(this, 1000)
+            triggerVibration(long = true)
+            recurringHapticHandler.postDelayed(this, 15000) // Every 15s in Phase 3
         }
     }
     
-    // Escalation State
-    private var areQuestsIncomplete = false
-    private var warning2hSent = false
-    private var warning30mSent = false
-    private var warning10mSent = false
     private var pulseState = 0 // 0: None, 1: Weak, 2: Strong
     
     private var lastLevel = -1
@@ -56,107 +52,41 @@ class MainActivity : AppCompatActivity() {
         setupClickListeners()
     }
 
-    override fun onResume() {
-        super.onResume()
-        startTimer()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        stopTimer()
-    }
-
-    private fun startTimer() {
-        timerHandler.removeCallbacks(timerRunnable)
-        timerRunnable.run()
-    }
-
-    private fun stopTimer() {
-        timerHandler.removeCallbacks(timerRunnable)
-    }
-
-    private fun updateTimer() {
-        val now = java.util.Calendar.getInstance()
-        val midnight = java.util.Calendar.getInstance().apply {
-            set(java.util.Calendar.HOUR_OF_DAY, 0)
-            set(java.util.Calendar.MINUTE, 0)
-            set(java.util.Calendar.SECOND, 0)
-            set(java.util.Calendar.MILLISECOND, 0)
-            add(java.util.Calendar.DAY_OF_YEAR, 1)
-        }
-
-        val diff = midnight.timeInMillis - now.timeInMillis
+    private fun handleEscalationPhase(phase: com.example.sololeveling.util.QuestSystemManager.EscalationPhase) {
+        // Reset haptics
+        recurringHapticHandler.removeCallbacks(recurringHapticRunnable)
         
-        // Reset Logic for New Day (if > 12 hours remain, likely midnight passed)
-        if (diff > 12 * 60 * 60 * 1000) {
-            if (warning2hSent || warning30mSent || warning10mSent) {
-                warning2hSent = false
-                warning30mSent = false
-                warning10mSent = false
+        when (phase) {
+            com.example.sololeveling.util.QuestSystemManager.EscalationPhase.NONE -> {
                 stopTimerPulse()
                 stopPenaltyPulse()
             }
-        }
-
-        if (diff <= 0) {
-            binding.tvDailyTimer.text = "[ TIME REMAINING: 00:00:00 ]"
-            stopTimerPulse()
-            // Keep penalty pulse active if quests incomplete? 
-            // Logic: "Border disappears immediately if quests complete."
-            // If time is 0 and quests incomplete, it SHOULD probably stay or escalate further (Phase 5).
-            // For now, let's keep it if incomplete.
-            if (areQuestsIncomplete) {
+            com.example.sololeveling.util.QuestSystemManager.EscalationPhase.PHASE_1 -> {
+                ensureTimerPulse(strong = false)
+                stopPenaltyPulse()
+            }
+            com.example.sololeveling.util.QuestSystemManager.EscalationPhase.PHASE_2 -> {
+                ensureTimerPulse(strong = true)
+                stopPenaltyPulse()
+            }
+            com.example.sololeveling.util.QuestSystemManager.EscalationPhase.PHASE_3 -> {
+                ensureTimerPulse(strong = true)
                 ensurePenaltyPulse()
-            } else {
-                stopPenaltyPulse()
+                recurringHapticRunnable.run() // Start recurring vibrations
             }
-        } else {
-            val hours = diff / (1000 * 60 * 60)
-            val minutes = (diff / (1000 * 60)) % 60
-            val seconds = (diff / 1000) % 60
-            binding.tvDailyTimer.text = String.format("[ TIME REMAINING: %02d:%02d:%02d ]", hours, minutes, seconds)
-            
-            // Escalation Logic
-            if (areQuestsIncomplete) {
-                if (diff < 10 * 60 * 1000) { // < 10 Mins
-                     if (!warning10mSent) {
-                        com.example.sololeveling.ui.common.SystemNotifier.show(this, "PENALTY IMMINENT. COMPLETE DAILY QUESTS.", com.example.sololeveling.ui.common.SystemNotificationView.Type.WARNING)
-                        warning10mSent = true
-                        triggerVibration()
-                    }
-                    ensurePenaltyPulse()
-                    ensureTimerPulse(strong = true)
-                } else if (diff < 30 * 60 * 1000) { // < 30 Mins
-                    if (!warning30mSent) {
-                        com.example.sololeveling.ui.common.SystemNotifier.show(this, "SYSTEM TIME IS RUNNING OUT", com.example.sololeveling.ui.common.SystemNotificationView.Type.WARNING)
-                        warning30mSent = true
-                    }
-                    ensureTimerPulse(strong = true)
-                    stopPenaltyPulse()
-                } else if (diff < 2 * 60 * 60 * 1000) { // < 2 Hours
-                    if (!warning2hSent) {
-                        com.example.sololeveling.ui.common.SystemNotifier.show(this, "WARNING: DAILY QUEST INCOMPLETE", com.example.sololeveling.ui.common.SystemNotificationView.Type.WARNING)
-                        warning2hSent = true
-                    }
-                    ensureTimerPulse(strong = false)
-                    stopPenaltyPulse()
-                } else {
-                    stopTimerPulse()
-                    stopPenaltyPulse()
-                }
-            } else {
+            com.example.sololeveling.util.QuestSystemManager.EscalationPhase.PENALTY -> {
                 stopTimerPulse()
-                stopPenaltyPulse()
+                ensurePenaltyPulse()
             }
         }
     }
-    
+
     private fun ensureTimerPulse(strong: Boolean) {
         val targetState = if (strong) 2 else 1
         if (pulseState == targetState) return
         
         pulseState = targetState
-        binding.tvDailyTimer.clearAnimation() // Stop existing
+        binding.tvDailyTimer.clearAnimation() 
         
         val scale = if (strong) 1.1f else 1.05f
         val duration = if (strong) 500L else 1000L
@@ -172,28 +102,18 @@ class MainActivity : AppCompatActivity() {
         binding.tvDailyTimer.scaleY = 1f
     }
     
-    // Penalty Pulse Logic
     private var isPenaltyPulsing = false
     
     private fun ensurePenaltyPulse() {
         if (isPenaltyPulsing) return
         isPenaltyPulsing = true
-        
         binding.vPenaltyBorder.visibility = android.view.View.VISIBLE
-        binding.vPenaltyBorder.alpha = 0f
-        
-        val pulse = android.animation.ObjectAnimator.ofFloat(binding.vPenaltyBorder, "alpha", 0.1f, 0.6f, 0.1f)
-        pulse.duration = 2000
-        pulse.repeatCount = android.animation.ObjectAnimator.INFINITE
-        pulse.interpolator = android.view.animation.AccelerateDecelerateInterpolator()
-        pulse.start()
-        binding.vPenaltyBorder.tag = pulse // Store animator
+        com.example.sololeveling.ui.common.AnimUtils.glowPulse(binding.vPenaltyBorder)
     }
     
     private fun stopPenaltyPulse() {
         if (!isPenaltyPulsing) return
         isPenaltyPulsing = false
-        
         val animator = binding.vPenaltyBorder.tag as? android.animation.ObjectAnimator
         animator?.cancel()
         binding.vPenaltyBorder.alpha = 0f
@@ -274,12 +194,21 @@ class MainActivity : AppCompatActivity() {
                 binding.tvEnd.text = "HP: ${it.endurance} / ${it.maxEndurance}"
                 
                 // Stat Grid Binding
-                binding.tvStr.text = "STR: ${it.fitness}"
-                binding.tvInt.text = "INT: ${it.knowledge}"
-                binding.tvAwa.text = "AGI: ${it.awareness}"
-                binding.tvDisc.text = "VIT: ${it.discipline}"
-                binding.tvChr.text = "CHR: ${it.charisma}"
-                binding.tvLuk.text = "LUK: ${it.luck}"
+                val reduction = it.penaltyStatReduction
+                binding.tvStr.text = "STR: ${it.fitness - reduction}"
+                binding.tvInt.text = "INT: ${it.knowledge - reduction}"
+                binding.tvAwa.text = "AGI: ${it.awareness - reduction}"
+                binding.tvDisc.text = "VIT: ${it.discipline - reduction}"
+                binding.tvChr.text = "CHR: ${it.charisma - reduction}"
+                binding.tvLuk.text = "LUK: ${it.luck - reduction}"
+                
+                val statColor = if (reduction > 0) getColor(R.color.system_red) else android.graphics.Color.WHITE
+                binding.tvStr.setTextColor(statColor)
+                binding.tvInt.setTextColor(statColor)
+                binding.tvAwa.setTextColor(statColor)
+                binding.tvDisc.setTextColor(statColor)
+                binding.tvChr.setTextColor(statColor)
+                binding.tvLuk.setTextColor(statColor)
                 
                 if (it.endurance <= 1) {
                     binding.tvEnd.setTextColor(getColor(R.color.system_red))
@@ -298,7 +227,7 @@ class MainActivity : AppCompatActivity() {
                     binding.tvXpText.setTextColor(getColor(R.color.system_red))
                     binding.progressBarXP.progressTintList = android.content.res.ColorStateList.valueOf(getColor(R.color.system_red))
                 } else {
-                    binding.tvPlayerName.setTextColor(getColor(R.color.system_blue)) 
+                    binding.tvPlayerName.setTextColor(if (it.isMonarch) android.graphics.Color.MAGENTA else getColor(R.color.system_blue)) 
                     binding.tvXpText.setTextColor(getColor(R.color.system_text_primary))
                     binding.progressBarXP.progressTintList = android.content.res.ColorStateList.valueOf(getColor(R.color.system_blue))
                 }
@@ -318,10 +247,17 @@ class MainActivity : AppCompatActivity() {
 
         viewModel.dailyQuests.observe(this) { quests ->
             adapter.submitList(quests)
-            areQuestsIncomplete = quests.any { !it.isCompleted }
-            if (!areQuestsIncomplete) {
-                stopTimerPulse()
-            }
+        }
+
+        viewModel.timeRemaining.observe(this) { diff ->
+            val hours = diff / (1000 * 60 * 60)
+            val minutes = (diff / (1000 * 60)) % 60
+            val seconds = (diff / 1000) % 60
+            binding.tvDailyTimer.text = String.format("[ TIME REMAINING: %02d:%02d:%02d ]", hours, minutes, seconds)
+        }
+
+        viewModel.escalationPhase.observe(this) { phase ->
+            handleEscalationPhase(phase)
         }
         
         viewModel.penaltyEvent.observe(this) { triggered ->
@@ -434,12 +370,13 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun triggerVibration() {
+    private fun triggerVibration(long: Boolean = false) {
         val vibrator = getSystemService(android.content.Context.VIBRATOR_SERVICE) as android.os.Vibrator
+        val duration = if (long) 200L else 50L
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            vibrator.vibrate(android.os.VibrationEffect.createOneShot(50, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            vibrator.vibrate(android.os.VibrationEffect.createOneShot(duration, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
         } else {
-            vibrator.vibrate(50)
+            vibrator.vibrate(duration)
         }
     }
 
@@ -483,12 +420,12 @@ class MainActivity : AppCompatActivity() {
         binding.progressBarXP.progress = binding.progressBarXP.max + (binding.progressBarXP.max / 10)
         
         // 6. Typewriter Sequence
-        timerHandler.postDelayed({ // Delay start slightly
+        binding.root.postDelayed({ // Delay start slightly
              com.example.sololeveling.ui.common.AnimUtils.typewriter(label, "SYSTEM MESSAGE", 30) {
-                 timerHandler.postDelayed({
+                 binding.root.postDelayed({
                      com.example.sololeveling.ui.common.AnimUtils.typewriter(msg, "LEVEL HAS INCREASED.", 50) {
                          // 7. Exit
-                         timerHandler.postDelayed({
+                         binding.root.postDelayed({
                              overlay.animate().alpha(0f).setDuration(500).start()
                              burst.animate().alpha(0f).setDuration(500).start()
                              container.animate().alpha(0f).setDuration(300).withEndAction {

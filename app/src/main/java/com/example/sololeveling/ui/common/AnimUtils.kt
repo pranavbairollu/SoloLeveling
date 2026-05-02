@@ -63,12 +63,12 @@ object AnimUtils {
         }
     }
     
-    fun fadeIn(view: View, duration: Long = 500) {
-        view.alpha = 0f
-        view.visibility = View.VISIBLE
-        view.animate()
-            .alpha(1f)
-            .setDuration(duration)
-            .setListener(null)
+    fun glowPulse(view: View, startAlpha: Float = 0.1f, endAlpha: Float = 0.6f, duration: Long = 2000) {
+        val alpha = ObjectAnimator.ofFloat(view, View.ALPHA, startAlpha, endAlpha, startAlpha)
+        alpha.duration = duration
+        alpha.repeatCount = ObjectAnimator.INFINITE
+        alpha.interpolator = AccelerateDecelerateInterpolator()
+        alpha.start()
+        view.tag = alpha // Store for cancellation
     }
 }

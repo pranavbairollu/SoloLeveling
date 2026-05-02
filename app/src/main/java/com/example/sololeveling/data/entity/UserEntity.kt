@@ -46,6 +46,9 @@ data class UserEntity(
     val soundEnabled: Boolean = true,
     val hapticsEnabled: Boolean = true,
     
+    // Penalty Details
+    val penaltyStatReduction: Int = 0, // Amount to subtract from all major stats during penalty
+    
     // Onboarding Flag
     val onboardingCompleted: Boolean = false
 )
