@@ -20,24 +20,25 @@ class UserRepository(private val userDao: UserDao) {
         return userDao.getUserSync()
     }
     
-    suspend fun decreaseEndurance(user: UserEntity): Boolean {
+    suspend fun decreaseEndurance(user: UserEntity, amount: Int = 1): Boolean {
         // Return true if System Reset triggered
-        val newEndurance = (user.endurance - 1).coerceAtLeast(0)
+        val newEndurance = (user.endurance - amount).coerceAtLeast(0)
         
-        if (newEndurance <= 0) {
-            // Trigger Reset Logic should be handled by caller (ViewModel) to coordinate Shadows etc.
-            // Just update value here? No, caller needs to know to trigger reset.
-            updateUser(user.copy(endurance = 0))
-            return true
+        updateUser(user.copy(endurance = newEndurance))
+        
+        return if (newEndurance <= 0) {
+            // Survival Failure Triggered
+            true
         } else {
-            updateUser(user.copy(endurance = newEndurance))
-            return false
+            false
         }
     }
     
     suspend fun processDailyEnduranceGain(user: UserEntity) {
         if (user.endurance < user.maxEndurance) {
-            updateUser(user.copy(endurance = user.endurance + 1))
+            val gain = 5 // Bonus for completing all quests
+            val newEndurance = (user.endurance + gain).coerceAtMost(user.maxEndurance)
+            updateUser(user.copy(endurance = newEndurance))
         }
     }
     
@@ -46,14 +47,16 @@ class UserRepository(private val userDao: UserDao) {
         val newLevel = (user.level - 1).coerceAtLeast(1)
         val newXp = 0L
         
-        // Stats -10%
-        val newStr = (user.fitness * 0.9).toInt().coerceAtLeast(1)
-        val newInt = (user.knowledge * 0.9).toInt().coerceAtLeast(1)
-        val newDisc = (user.discipline * 0.9).toInt().coerceAtLeast(1)
-        val newAwa = (user.awareness * 0.9).toInt().coerceAtLeast(1)
+        // Stats -10% (Survival Penalty)
+        val newStr = (user.fitness * 0.9).toInt().coerceAtLeast(10)
+        val newInt = (user.knowledge * 0.9).toInt().coerceAtLeast(10)
+        val newDisc = (user.discipline * 0.9).toInt().coerceAtLeast(10)
+        val newAwa = (user.awareness * 0.9).toInt().coerceAtLeast(10)
+        val newChr = (user.charisma * 0.9).toInt().coerceAtLeast(10)
+        val newLuk = (user.luck * 0.9).toInt().coerceAtLeast(10)
         
-        // Endurance Reset
-        val newEndurance = user.maxEndurance
+        // Recalculate Max HP
+        val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc)
         
         val resetUser = user.copy(
             level = newLevel,
@@ -62,10 +65,14 @@ class UserRepository(private val userDao: UserDao) {
             knowledge = newInt,
             discipline = newDisc,
             awareness = newAwa,
-            endurance = newEndurance,
-            penaltyEndTime = 0L // Clear penalty logic if reset? Or keep it? Requirement doesn't strict penalty clear but reset implies fresh start partially. "Endurance reset to max".
-            // "Active Gate failed" -> Handled by GateRepo
-            // "Shadow loyalty reduced" -> Handled by ShadowRepo
+            charisma = newChr,
+            luck = newLuk,
+            maxEndurance = newMaxHp,
+            endurance = newMaxHp, // Reset to max
+            penaltyEndTime = 0L,
+            unspentPoints = 0, // Reset unspent points as penalty
+            hasClearedGateSincePromotion = false,
+            hasDefeatedBossSincePromotion = false
         )
         updateUser(resetUser)
     }

@@ -2,57 +2,53 @@ package com.example.sololeveling.util
 
 object StatCalculator {
 
-    // STR: Increases Quest XP by +1% per point
-    fun calculateXpMultiplier(strength: Int, intelligence: Int): Float {
-        val strBonus = strength * 0.01f
-        val intBonus = intelligence * 0.02f
-        // Base 100% + Bonuses
+    // FITNESS (STR): Increases Quest XP by +1% per point
+    // KNOWLEDGE (INT): Increases Quest XP by +2% per point
+    fun calculateXpMultiplier(fitness: Int, knowledge: Int): Float {
+        val strBonus = fitness * 0.01f
+        val intBonus = knowledge * 0.02f
         return 1.0f + strBonus + intBonus
     }
 
-    // BOSS DAMAGE (Future Hook)
-    fun calculateBossDamage(strength: Int): Int {
-        return strength * 10 // Placeholder formula
+    // BOSS DAMAGE
+    fun calculateBossDamage(fitness: Int, luck: Int): Int {
+        val base = fitness * 10
+        val critChance = calculateCritChance(luck)
+        return if (Math.random() < critChance) (base * 1.5).toInt() else base
     }
 
-    // VIT (Discipline): Max HP +5 per point
-    // Note: If this is "Lives" (Endurance), +5 per point is huge. 
-    // If this is Combat HP, it's fine. 
-    // Assuming this scales the 'maxEndurance' property.
-    fun calculateMaxHp(vitality: Int): Int {
-        // Base 3 + (VIT * 5)? Or just VIT * 5?
-        // Prompt says "Increases Max HP by +5 per point".
-        // Assuming base is 0 or 100?
-        // Let's assume it adds to the base durability of the player.
-        // Existing UserEntity has default 3.
-        // If we want to keep it "Lives" style, maybe +1 per 10 points?
-        // But prompt is specific: "+5 per point".
-        // I will follow prompt. Maybe usage changes from "Lives" to "Health".
-        // Base 100 + (VIT * 5)
-        return 100 + (vitality * 5)
+    // DISCIPLINE (VIT): Max HP +5 per point
+    fun calculateMaxHp(discipline: Int): Int {
+        return 100 + (discipline * 5)
     }
 
-    // VIT: Penalty Severity Reduction (Cap 30%)
-    fun calculatePenaltyReduction(vitality: Int): Float {
-        // 1% per point
-        val reduction = vitality * 0.01f
-        return reduction.coerceAtMost(0.30f)
+    // DISCIPLINE: Penalty Severity Reduction (Cap 50%)
+    fun calculatePenaltyReduction(discipline: Int): Float {
+        val reduction = discipline * 0.01f
+        return reduction.coerceAtMost(0.50f)
     }
 
-    // INT: Level XP Requirement Reduction
-    // "Slightly reduces Level XP (soft curve)"
-    fun calculateRequiredXp(level: Int, intelligence: Int): Long {
-        val baseXp = level * 100L
-        // Soft curve reduction: 0.1% per INT point?
-        // Let's say max reduction 50%.
-        val reductionFactor = (intelligence * 0.005f).coerceAtMost(0.5f)
+    // KNOWLEDGE: Level XP Requirement Reduction
+    fun calculateRequiredXp(level: Int, knowledge: Int): Long {
+        val baseXp = level * 1000L // Increased base for longer progression
+        val reductionFactor = (knowledge * 0.005f).coerceAtMost(0.5f)
         val reduced = baseXp * (1.0f - reductionFactor)
-        return reduced.toLong().coerceAtLeast(10L) 
+        return reduced.toLong().coerceAtLeast(100L) 
     }
 
-    // AGI (Awareness): Reward Chance Bonus
-    fun calculateBonusRewardChance(agility: Int): Float {
-        // 0.5% per point
-        return agility * 0.005f
+    // AWARENESS (AGI): Reward Chance Bonus
+    fun calculateBonusRewardChance(awareness: Int, luck: Int): Float {
+        // 0.5% from Awareness + 1% from Luck
+        return (awareness * 0.005f) + (luck * 0.01f)
+    }
+
+    // LUCK: Crit Chance for Bosses (Cap 40%)
+    fun calculateCritChance(luck: Int): Float {
+        return (luck * 0.01f).coerceAtMost(0.40f)
+    }
+
+    // CHARISMA: Shadow Recruitment/Loyalty Bonus
+    fun calculateCharismaBonus(charisma: Int): Float {
+        return (charisma * 0.02f).coerceAtMost(0.60f)
     }
 }

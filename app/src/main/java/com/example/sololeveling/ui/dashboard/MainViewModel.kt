@@ -114,7 +114,15 @@ class MainViewModel(
         
         // Recalculate Max HP due to VIT loss
         val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc)
-        val newEndurance = (user.endurance - 1).coerceAtMost(newMaxHp).coerceAtLeast(0)
+        // Endurance Loss (Scaling)
+        val enduranceLoss = 20
+        val reset = userRepository.decreaseEndurance(user, enduranceLoss)
+        if (reset) {
+            performSystemReset(user)
+            return
+        }
+        
+        val newEndurance = userRepository.getCurrentUser()?.endurance ?: 0
         
         val penalizedUser = user.copy(
             currentXP = 0,
@@ -224,11 +232,15 @@ class MainViewModel(
                 )
                 
                 // Apply Stat specific rewards
-                userUpdate = when (quest.linkedStat) {
-                    "STR", "Fitness", "FITNESS", "SHADOW_STR", "SHADOW_FIT" -> userUpdate.copy(fitness = userUpdate.fitness + quest.statReward)
-                    "INT", "Knowledge", "KNOWLEDGE", "SHADOW_INT", "SHADOW_KNL" -> userUpdate.copy(knowledge = userUpdate.knowledge + quest.statReward)
-                    "DISC", "Discipline", "DISCIPLINE", "SHADOW_DISC" -> userUpdate.copy(discipline = userUpdate.discipline + quest.statReward)
-                    else -> userUpdate
+                val statType = com.example.sololeveling.logic.StatType.fromString(quest.linkedStat)
+                userUpdate = when (statType) {
+                    com.example.sololeveling.logic.StatType.FITNESS -> userUpdate.copy(fitness = userUpdate.fitness + quest.statReward)
+                    com.example.sololeveling.logic.StatType.KNOWLEDGE -> userUpdate.copy(knowledge = userUpdate.knowledge + quest.statReward)
+                    com.example.sololeveling.logic.StatType.DISCIPLINE -> userUpdate.copy(discipline = userUpdate.discipline + quest.statReward)
+                    com.example.sololeveling.logic.StatType.AWARENESS -> userUpdate.copy(awareness = userUpdate.awareness + quest.statReward)
+                    com.example.sololeveling.logic.StatType.CHARISMA -> userUpdate.copy(charisma = userUpdate.charisma + quest.statReward)
+                    com.example.sololeveling.logic.StatType.LUCK -> userUpdate.copy(luck = userUpdate.luck + quest.statReward)
+                    null -> userUpdate
                 }
                 
                 userRepository.updateUser(userUpdate)
@@ -330,6 +342,12 @@ class MainViewModel(
             val user = userRepository.getCurrentUser() ?: return@launch
             val nextRank = getNextRank(user.rank) ?: return@launch
             
+            // Re-validate Criteria
+            val requiredLevel = getRequiredLevelForRank(nextRank)
+            if (user.level < requiredLevel || !user.hasClearedGateSincePromotion || !user.hasDefeatedBossSincePromotion) {
+                return@launch
+            }
+            
             val promotedUser = user.copy(
                 rank = nextRank,
                 hasClearedGateSincePromotion = false,
@@ -406,18 +424,18 @@ class MainViewModel(
                 val user = userRepository.getCurrentUser() ?: return@withLock
                 val totalCost = str + int + disc + awk + chr + luk
                 
-                if (user.unspentPoints >= totalCost) {
-                    val newStr = user.fitness + str
-                    val newInt = user.knowledge + int
-                    val newDisc = user.discipline + disc 
-                    val newAwk = user.awareness + awk 
-                    val newChr = user.charisma + chr
-                    val newLuk = user.luck + luk
+                if (totalCost > 0 && user.unspentPoints >= totalCost) {
+                    val newStr = (user.fitness + str).coerceAtLeast(0)
+                    val newInt = (user.knowledge + int).coerceAtLeast(0)
+                    val newDisc = (user.discipline + disc).coerceAtLeast(0)
+                    val newAwk = (user.awareness + awk).coerceAtLeast(0)
+                    val newChr = (user.charisma + chr).coerceAtLeast(0)
+                    val newLuk = (user.luck + luk).coerceAtLeast(0)
                     
                     // Recalculate Max HP (VIT)
                     val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc)
                     val hpDiff = newMaxHp - user.maxEndurance
-                    val newHp = (user.endurance + hpDiff).coerceAtMost(newMaxHp) 
+                    val newHp = (user.endurance + hpDiff).coerceIn(0, newMaxHp) 
                     
                     val updatedUser = user.copy(
                         fitness = newStr,
