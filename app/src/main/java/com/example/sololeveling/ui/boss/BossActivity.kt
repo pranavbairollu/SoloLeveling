@@ -66,6 +66,14 @@ class BossActivity : AppCompatActivity() {
                 else -> {}
             }
         }
+
+        viewModel.extractionNavEvent.observe(this) { shadowId ->
+            shadowId?.let {
+                val intent = android.content.Intent(this, com.example.sololeveling.ui.shadow.ShadowActivity::class.java)
+                intent.putExtra("SHADOW_ID", it)
+                startActivity(intent)
+            }
+        }
     }
     
     private fun showConfirmationDialog(boss: BossEntity, q: BossViewModel.Qualification, missing: List<String>) {

@@ -17,5 +17,6 @@ data class ShadowEntity(
     val unlockCondition: String = "",
     
     val isActive: Boolean = true,
-    val loyaltyLevel: Int = 1
+    val loyaltyLevel: Int = 1,
+    val isResurrected: Boolean = false
 )

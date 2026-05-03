@@ -42,7 +42,7 @@ class UserRepository(private val userDao: UserDao) {
         }
     }
     
-    suspend fun performSystemReset(user: UserEntity) {
+    suspend fun performSystemReset(user: UserEntity, discMult: Float = 1.0f) {
         // Level -1 (Min 1)
         val newLevel = (user.level - 1).coerceAtLeast(1)
         val newXp = 0L
@@ -56,7 +56,7 @@ class UserRepository(private val userDao: UserDao) {
         val newLuk = (user.luck * 0.9).toInt().coerceAtLeast(10)
         
         // Recalculate Max HP
-        val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc)
+        val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc, discMult)
         
         val resetUser = user.copy(
             level = newLevel,
@@ -77,23 +77,23 @@ class UserRepository(private val userDao: UserDao) {
         updateUser(resetUser)
     }
 
-    suspend fun grantGateRewards(xpReward: Int) {
+    suspend fun grantGateRewards(xpReward: Int, fitMult: Float = 1.0f, knlMult: Float = 1.0f) {
         val user = getCurrentUser() ?: return
         
         // XP Calculation with Fitness/Knowledge Multiplier
-        val xpMultiplier = com.example.sololeveling.util.StatCalculator.calculateXpMultiplier(user.fitness, user.knowledge)
+        val xpMultiplier = com.example.sololeveling.util.StatCalculator.calculateXpMultiplier(user.fitness, user.knowledge, fitMult * knlMult)
         val bonusXp = (xpReward * xpMultiplier).toLong()
         
         var newXp = user.currentXP + bonusXp
         var newLevel = user.level
-        var requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, user.knowledge)
+        var requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, user.knowledge, knlMult)
         var unspentPoints = user.unspentPoints
         
         // Level Up Check
         while (newXp >= requiredXp) {
             newXp -= requiredXp
             newLevel++
-            requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, user.knowledge)
+            requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, user.knowledge, knlMult)
             unspentPoints += 3
         }
 

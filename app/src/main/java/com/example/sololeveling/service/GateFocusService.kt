@@ -89,8 +89,14 @@ class GateFocusService : Service() {
                 )
                 gateDao.updateGate(completedGate)
                 
+                // Fetch Multipliers
+                val shadowRepo = com.example.sololeveling.data.repository.ShadowRepository(db.shadowDao(), db.questDao())
+                val sMults = shadowRepo.getActiveMultipliers()
+                val fitMult = sMults.getOrDefault("Fitness", 1.0).toFloat()
+                val knlMult = sMults.getOrDefault("Knowledge", 1.0).toFloat()
+
                 // Grant Rewards to User
-                userRepo.grantGateRewards(totalXP)
+                userRepo.grantGateRewards(totalXP, fitMult, knlMult)
             }
             
             val intent = Intent(ACTION_GATE_SUCCESS)

@@ -34,6 +34,7 @@ class MainViewModel(
     val user: LiveData<UserEntity?> = userRepository.userFlow.asLiveData()
     val dailyQuests: LiveData<List<QuestEntity>> = questRepository.getTodayQuests().asLiveData()
     val activeGate: LiveData<GateEntity?> = gateRepository.activeGate.asLiveData()
+    val shadowMultipliers: LiveData<Map<String, Double>> = shadowRepository.activeMultipliers.asLiveData()
     
     // One-shot event for UI (Penalty Triggered)
     private val _penaltyEvent = androidx.lifecycle.MutableLiveData<Boolean>()
@@ -141,13 +142,16 @@ class MainViewModel(
     private suspend fun failGate(gate: GateEntity, user: UserEntity) {
         if (user.isMonarch) return // Immunity
         
+        val sMults = shadowRepository.getActiveMultipliers()
+        val discMult = sMults.getOrDefault("Discipline", 1.0).toFloat()
+
         // Apply Heavy Penalty
         // XP Reset to 0
         // Disc -5
         val newDisc = (user.discipline - 5).coerceAtLeast(0)
         
         // Recalculate Max HP due to VIT loss
-        val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc)
+        val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc, discMult)
         // Endurance Loss (Scaling)
         val enduranceLoss = 20
         val reset = userRepository.decreaseEndurance(user, enduranceLoss)
@@ -180,8 +184,11 @@ class MainViewModel(
     private suspend fun applyPenalty(user: UserEntity) {
         if (user.isMonarch) return // Immunity
         
+        val sMults = shadowRepository.getActiveMultipliers()
+        val discMult = sMults.getOrDefault("Discipline", 1.0).toFloat()
+
         // Calculate Reduction (VIT)
-        val reductionPct = com.example.sololeveling.util.StatCalculator.calculatePenaltyReduction(user.discipline)
+        val reductionPct = com.example.sololeveling.util.StatCalculator.calculatePenaltyReduction(user.discipline, discMult)
         val baseDuration = 12 * 60 * 60 * 1000L // 12 Hours
         val reducedDuration = (baseDuration * (1f - reductionPct)).toLong()
         
@@ -235,20 +242,25 @@ class MainViewModel(
                     userRepository.processDailyEnduranceGain(currentUser)
                 }
                 
+                val sMults = shadowRepository.getActiveMultipliers()
+                val fitMult = sMults.getOrDefault("Fitness", 1.0).toFloat()
+                val knlMult = sMults.getOrDefault("Knowledge", 1.0).toFloat()
+                val discMult = sMults.getOrDefault("Discipline", 1.0).toFloat()
+
                 // XP Calculation with Fitness/Knowledge Multiplier
-                val xpMultiplier = com.example.sololeveling.util.StatCalculator.calculateXpMultiplier(currentUser.fitness, currentUser.knowledge)
+                val xpMultiplier = com.example.sololeveling.util.StatCalculator.calculateXpMultiplier(currentUser.fitness, currentUser.knowledge, fitMult * knlMult)
                 val bonusXp = (quest.xpReward * xpMultiplier).toLong()
                 
                 var newXp = currentUser.currentXP + bonusXp
                 var newLevel = currentUser.level
-                var requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, currentUser.knowledge)
+                var requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, currentUser.knowledge, knlMult)
                 var unspentPoints = currentUser.unspentPoints
                 
                 // Level Up Check
                 while (newXp >= requiredXp) {
                     newXp -= requiredXp
                     newLevel++
-                    requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, currentUser.knowledge)
+                    requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, currentUser.knowledge, knlMult)
                     unspentPoints += 3
                 }
     
@@ -386,7 +398,10 @@ class MainViewModel(
     }
     
     private suspend fun performSystemReset(user: UserEntity) {
-        userRepository.performSystemReset(user)
+        val sMults = shadowRepository.getActiveMultipliers()
+        val discMult = sMults.getOrDefault("Discipline", 1.0).toFloat()
+        
+        userRepository.performSystemReset(user, discMult)
         shadowRepository.reduceAllShadowsLoyalty()
         
         // Fail active gate
@@ -426,8 +441,11 @@ class MainViewModel(
                     val newChr = (user.charisma + chr).coerceAtLeast(0)
                     val newLuk = (user.luck + luk).coerceAtLeast(0)
                     
+                    val sMults = shadowRepository.getActiveMultipliers()
+                    val discMult = sMults.getOrDefault("Discipline", 1.0).toFloat()
+
                     // Recalculate Max HP (VIT)
-                    val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc)
+                    val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc, discMult)
                     val hpDiff = newMaxHp - user.maxEndurance
                     val newHp = (user.endurance + hpDiff).coerceIn(0, newMaxHp) 
                     

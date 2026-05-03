@@ -26,6 +26,9 @@ class BossViewModel(
     
     private val _bossResultEvent = MutableLiveData<BossResult>()
     val bossResultEvent: LiveData<BossResult> = _bossResultEvent
+
+    private val _extractionNavEvent = MutableLiveData<Int?>()
+    val extractionNavEvent: LiveData<Int?> = _extractionNavEvent
     
     enum class Qualification {
         QUALIFIED, HIGH_RISK, UNQUALIFIED, ON_COOLDOWN, NO_GATES
@@ -109,8 +112,12 @@ class BossViewModel(
                 ))
                 
                 shadowRepository.extractShadow(boss)
-                _messageEvent.value = "MILESTONE ACHIEVED: ${boss.name}. SHADOW EXTRACTED."
+                val shadow = shadowRepository.getShadowByBossId(boss.id)
+                _messageEvent.value = "MILESTONE ACHIEVED: ${boss.name}. SHADOW DETECTED."
                 _bossResultEvent.value = BossResult.Victory
+                
+                // Trigger navigation
+                shadow?.let { _extractionNavEvent.value = it.id }
             } else {
                 // Failure Logic
                 if (user.isMonarch) {

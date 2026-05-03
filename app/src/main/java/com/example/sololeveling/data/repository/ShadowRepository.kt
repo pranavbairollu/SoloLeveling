@@ -7,6 +7,7 @@ import com.example.sololeveling.data.entity.QuestEntity
 import com.example.sololeveling.data.entity.ShadowEntity
 import com.example.sololeveling.data.entity.UserEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.util.Calendar
 
 class ShadowRepository(
@@ -14,24 +15,51 @@ class ShadowRepository(
     private val questDao: QuestDao
 ) {
     val allShadows: Flow<List<ShadowEntity>> = shadowDao.getAllShadows()
+    val activeMultipliers: Flow<Map<String, Double>> = shadowDao.getAllShadows().map { list ->
+        val multipliers = mutableMapOf<String, Double>()
+        list.filter { it.isActive }.forEach { shadow ->
+            val current = multipliers.getOrDefault(shadow.boostedStat, 1.0)
+            multipliers[shadow.boostedStat] = current * shadow.boostMultiplier
+        }
+        multipliers
+    }
 
     suspend fun extractShadow(boss: BossEntity) {
+        // Find existing or create new
+        val existing = shadowDao.getShadowByBossId(boss.id)
+        if (existing != null) return
+
         // Create Shadow based on Boss
-        val shadowName = "SHADOW ${boss.name.uppercase()}"
-        val type = when {
-            boss.requiredFitness > boss.requiredKnowledge -> "STR"
-            boss.requiredKnowledge > boss.requiredFitness -> "INT"
-            else -> "DISC"
+        val (shadowName, statType, multiplier) = when {
+            boss.name.contains("Finals", ignoreCase = true) -> Triple("SHADOW PROFESSOR", "Knowledge", 1.15)
+            boss.name.contains("Championship", ignoreCase = true) -> Triple("SHADOW COACH", "Fitness", 1.20)
+            boss.name.contains("Board", ignoreCase = true) -> Triple("SHADOW CHAIRMAN", "Charisma", 1.25)
+            boss.name.contains("Igris", ignoreCase = true) -> Triple("SHADOW IGRIS", "Discipline", 1.30)
+            else -> Triple("SHADOW ${boss.name.uppercase()}", if (boss.requiredFitness > boss.requiredKnowledge) "Fitness" else "Knowledge", 1.10)
         }
         
         val shadow = ShadowEntity(
             name = shadowName,
             sourceBossId = boss.id,
-            boostedStat = type,
-            isActive = false,
+            boostedStat = statType,
+            boostMultiplier = multiplier,
+            isActive = false, // Not active until ARISE
+            isResurrected = false,
             loyaltyLevel = 1
         )
         shadowDao.insertShadow(shadow)
+    }
+
+    suspend fun getActiveMultipliers(): Map<String, Double> {
+        val active = shadowDao.getActiveShadowsSync()
+        val multipliers = mutableMapOf<String, Double>()
+        
+        active.forEach { shadow ->
+            val current = multipliers.getOrDefault(shadow.boostedStat, 1.0)
+            multipliers[shadow.boostedStat] = current * shadow.boostMultiplier
+        }
+        
+        return multipliers
     }
 
     suspend fun generateDailyShadowQuests() {

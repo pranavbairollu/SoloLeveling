@@ -71,9 +71,12 @@ class ShadowActivity : AppCompatActivity() {
             
             shadow?.let {
                 binding.tvShadowName.text = it.name
-                if (it.isActive) {
-                    binding.tvStatus.text = getString(R.string.shadow_already_unlocked)
+                if (it.isResurrected) {
+                    binding.tvStatus.text = "STATUS: RESURRECTED"
+                    binding.tvStatus.setTextColor(android.graphics.Color.parseColor("#BB86FC"))
+                    binding.ivShadowPlaceholder.setColorFilter(android.graphics.Color.parseColor("#BB86FC"))
                     binding.ivMic.isEnabled = false
+                    binding.tvPrompt.text = "This shadow has already been extracted."
                 }
             }
         }
@@ -95,7 +98,15 @@ class ShadowActivity : AppCompatActivity() {
                     binding.tvStatus.text = getString(R.string.shadow_status_processing)
                 }
                 override fun onError(error: Int) {
-                    binding.tvStatus.text = getString(R.string.shadow_status_error)
+                    val message = when(error) {
+                        SpeechRecognizer.ERROR_NETWORK -> "Network Error. Check connection."
+                        SpeechRecognizer.ERROR_AUDIO -> "Audio recording error."
+                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permissions missing."
+                        SpeechRecognizer.ERROR_NO_MATCH -> "No match. Try again."
+                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Timeout. Tap mic again."
+                        else -> "System Error: $error"
+                    }
+                    binding.tvStatus.text = message
                     binding.btnRetry.visibility = View.VISIBLE
                     binding.ivMic.setColorFilter(resources.getColor(android.R.color.holo_red_light, null))
                 }
@@ -105,6 +116,7 @@ class ShadowActivity : AppCompatActivity() {
                     if (matches != null) {
                         for (match in matches) {
                             if (match.contains("arise", ignoreCase = true)) {
+                                startGlowAnimation()
                                 unlockShadow()
                                 return
                             }
@@ -140,20 +152,33 @@ class ShadowActivity : AppCompatActivity() {
         speechRecognizer?.startListening(intent)
     }
 
+    private fun startGlowAnimation() {
+        val animator = android.animation.ObjectAnimator.ofFloat(binding.ivShadowPlaceholder, "scaleX", 1f, 1.2f, 1f)
+        animator.duration = 1000
+        animator.repeatCount = 3
+        animator.start()
+        
+        android.animation.ObjectAnimator.ofFloat(binding.ivShadowPlaceholder, "scaleY", 1f, 1.2f, 1f).apply {
+            duration = 1000
+            repeatCount = 3
+            start()
+        }
+    }
+
     private fun unlockShadow() {
-        binding.tvStatus.text = getString(R.string.shadow_status_success)
-        binding.tvStatus.setTextColor(resources.getColor(android.R.color.holo_purple, null))
-        binding.ivShadowPlaceholder.setColorFilter(resources.getColor(android.R.color.holo_purple, null)) // "Glow"
+        binding.tvStatus.text = "ARISE: SUCCESSFUL"
+        binding.tvStatus.setTextColor(android.graphics.Color.parseColor("#BB86FC")) // Purple
+        binding.ivShadowPlaceholder.setColorFilter(android.graphics.Color.parseColor("#BB86FC")) // "Glow"
         
         lifecycleScope.launch {
             shadow?.let {
-                val unlocked = it.copy(isActive = true)
+                val unlocked = it.copy(isActive = true, isResurrected = true)
                 withContext(Dispatchers.IO) {
                     shadowDao.insertShadow(unlocked)
                 }
             }
-            Toast.makeText(this@ShadowActivity, getString(R.string.shadow_unlocked_toast), Toast.LENGTH_LONG).show()
-            kotlinx.coroutines.delay(2000)
+            Toast.makeText(this@ShadowActivity, "THE SHADOW IS RESURRECTED", Toast.LENGTH_LONG).show()
+            kotlinx.coroutines.delay(3000)
             finish()
         }
     }
