@@ -104,10 +104,15 @@ class SystemNotificationView @JvmOverloads constructor(
             .setInterpolator(AccelerateDecelerateInterpolator())
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
+                    // Slight shake for warnings
+                    if (currentType == Type.WARNING) {
+                        AnimUtils.shake(container, intensity = 5f)
+                    }
+
                     // Start Typewriter AFTER entry
-                    AnimUtils.typewriter(tvMessage, message, delayMs = 20) {
+                    AnimUtils.typewriter(tvMessage, message, delayMs = 15) {
                         // Queue Dismiss
-                        handler.postDelayed({ dismiss() }, 2500)
+                        handler.postDelayed({ dismiss() }, 3000)
                     }
                 }
             })

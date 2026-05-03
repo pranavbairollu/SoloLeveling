@@ -101,9 +101,9 @@ class GateActivity : AppCompatActivity() {
     private fun applyRedGateAesthetics() {
         binding.rootLayout.setBackgroundColor(0xFF220000.toInt())
         binding.tvRedGateWarning.visibility = View.VISIBLE
-        binding.tvRedGateWarning.text = "SYSTEM ERROR: RED GATE DETECTED\nSTAKES DOUBLED"
+        com.example.sololeveling.ui.common.AnimUtils.typewriter(binding.tvRedGateWarning, "SYSTEM ERROR: RED GATE DETECTED\nSTAKES DOUBLED", delayMs = 40)
         binding.tvGateName.setTextColor(0xFFFF0000.toInt())
-        // Pulsing animation could be added here
+        com.example.sololeveling.ui.common.AnimUtils.pulse(binding.tvRedGateWarning, 1.05f, 1000)
     }
 
     private fun loadGateData() {
@@ -219,7 +219,8 @@ class GateActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        Toast.makeText(this, "RETREAT IS IMPOSSIBLE", Toast.LENGTH_SHORT).show()
+        com.example.sololeveling.ui.common.AnimUtils.shake(binding.root, intensity = 15f)
+        com.example.sololeveling.ui.common.SystemNotifier.show(this, "SYSTEM DOES NOT PERMIT RETREAT", com.example.sololeveling.ui.common.SystemNotificationView.Type.WARNING)
     }
 
     private fun formatDuration(ms: Long): String {

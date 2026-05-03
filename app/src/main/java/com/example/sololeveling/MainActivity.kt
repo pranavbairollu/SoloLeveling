@@ -280,8 +280,9 @@ class MainActivity : AppCompatActivity() {
         
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                com.example.sololeveling.ui.common.AnimUtils.shake(binding.root)
+                com.example.sololeveling.ui.common.AnimUtils.shake(binding.root, intensity = 15f)
                 com.example.sololeveling.ui.common.SystemNotifier.show(this@MainActivity, "SYSTEM DOES NOT PERMIT RETREAT", com.example.sololeveling.ui.common.SystemNotificationView.Type.WARNING)
+                triggerVibration(long = false)
             }
         })
     }
@@ -337,7 +338,16 @@ class MainActivity : AppCompatActivity() {
         dialog.setOnShowListener {
             val messageView = dialog.findViewById<android.widget.TextView>(android.R.id.message)
             val fullText = "SURVIVAL FAILURE CONFIRMED.\n\ninitiating reset sequence...\n\nLEVEL -1\nSTATS -10%\nSHADOWS PENALIZED\n\nThe Player will now be returned to the beginning."
-            com.example.sololeveling.ui.common.AnimUtils.typewriter(messageView, fullText)
+            
+            // Apply Glitch Effect to window decor
+            val decor = dialog.window?.decorView
+            if (decor != null) {
+                com.example.sololeveling.ui.common.AnimUtils.glitchEffect(decor, duration = 2000) {
+                    com.example.sololeveling.ui.common.AnimUtils.typewriter(messageView, fullText, delayMs = 40)
+                }
+            } else {
+                com.example.sololeveling.ui.common.AnimUtils.typewriter(messageView, fullText, delayMs = 40)
+            }
         }
         dialog.show()
     }
@@ -410,56 +420,64 @@ class MainActivity : AppCompatActivity() {
         burst.scaleX = 0f
         burst.scaleY = 0f
         container.visibility = android.view.View.VISIBLE
+        container.alpha = 1f
         label.text = ""
         msg.text = ""
         
-        // Block touches
+        // Block touches explicitly
         overlay.isClickable = true
         overlay.isFocusable = true
+        overlay.requestFocus()
         
         // 2. Animate In
-        overlay.animate().alpha(0.8f).setDuration(300).start()
+        overlay.animate().alpha(0.9f).setDuration(400).start()
         
-        // 3. Screen Shake & Burst
-        com.example.sololeveling.ui.common.AnimUtils.shake(binding.root)
-        burst.animate().alpha(1f).scaleX(1.5f).scaleY(1.5f).setDuration(500).setInterpolator(android.view.animation.DecelerateInterpolator()).start()
+        // 3. Intense Screen Shake & Burst
+        com.example.sololeveling.ui.common.AnimUtils.shake(binding.root, intensity = 20f)
+        burst.animate()
+            .alpha(1f)
+            .scaleX(2.5f)
+            .scaleY(2.5f)
+            .setDuration(600)
+            .setInterpolator(android.view.animation.OvershootInterpolator())
+            .start()
         
-        // 4. Sound
-        triggerVibration() 
-        // Note: SoundManager.playLevelUp matches "ascending tone" requirement roughly, using existing if available. 
-        // soundManager.playLevelUp(true, true) // Assuming User settings available? 
-        // Just triggering vibration as a safe tactile fallback for "System event".
+        // 4. Sound & Haptics
+        triggerVibration(long = true) 
         soundManager.playLevelUp(true, true)
         
-        // 5. XP Bar Overfill (Visual Trick)
-        binding.progressBarXP.progress = binding.progressBarXP.max + (binding.progressBarXP.max / 10)
+        // 5. XP Bar Snap
+        binding.progressBarXP.progress = binding.progressBarXP.max
         
         // 6. Typewriter Sequence
-        binding.root.postDelayed({ // Delay start slightly
-             com.example.sololeveling.ui.common.AnimUtils.typewriter(label, "SYSTEM MESSAGE", 30) {
+        binding.root.postDelayed({
+             com.example.sololeveling.ui.common.AnimUtils.typewriter(label, "SYSTEM MESSAGE", 20) {
                  binding.root.postDelayed({
-                     com.example.sololeveling.ui.common.AnimUtils.typewriter(msg, "LEVEL HAS INCREASED.", 50) {
-                         // 7. Exit
-                         binding.root.postDelayed({
-                             overlay.animate().alpha(0f).setDuration(500).start()
-                             burst.animate().alpha(0f).setDuration(500).start()
-                             container.animate().alpha(0f).setDuration(300).withEndAction {
-                                 overlay.visibility = android.view.View.GONE
-                                 overlay.isClickable = false
-                                 burst.visibility = android.view.View.GONE
-                                 container.visibility = android.view.View.GONE
-                                 container.alpha = 1f // Reset
-                                 // Snap XP bar back to normal (ViewModel triggers update anyway, but safe to sync)
-                                 val user = viewModel.user.value
-                                 if (user != null) {
-                                     binding.progressBarXP.progress = user.currentXP.toInt()
-                                 }
-                             }.start()
-                         }, 1500) // Read time
+                     com.example.sololeveling.ui.common.AnimUtils.typewriter(msg, "LEVEL HAS INCREASED.", 40) {
+                          // Secondary shake for impact
+                          com.example.sololeveling.ui.common.AnimUtils.shake(container, intensity = 10f)
+                          
+                          // 7. Exit
+                          binding.root.postDelayed({
+                              overlay.animate().alpha(0f).setDuration(800).start()
+                              burst.animate().alpha(0f).scaleX(3f).scaleY(3f).setDuration(800).start()
+                              container.animate().alpha(0f).setDuration(600).withEndAction {
+                                  overlay.visibility = android.view.View.GONE
+                                  overlay.isClickable = false
+                                  burst.visibility = android.view.View.GONE
+                                  container.visibility = android.view.View.GONE
+                                  
+                                  // Sync XP bar
+                                  val user = viewModel.user.value
+                                  if (user != null) {
+                                      binding.progressBarXP.progress = user.currentXP.toInt()
+                                  }
+                              }.start()
+                          }, 2000) 
                      }
-                 }, 300) // Delay between lines
+                 }, 400)
              }
-        }, 300)
+        }, 500)
     }
 
     private fun showStatsDialog() {
