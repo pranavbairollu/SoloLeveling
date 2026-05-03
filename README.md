@@ -1,71 +1,95 @@
-# Solo Leveling - System
+# 🌌 Solo Leveling: The System
 
-A powerful, gamified productivity and lifestyle tracker for Android, inspired by the anime and manhwa *Solo Leveling*. Turn your daily tasks, focus sessions, and big goals into a high-stakes RPG experience.
+[![Platform](https://img.shields.io/badge/Platform-Android-brightgreen.svg)](https://developer.android.com/)
+[![Language](https://img.shields.io/badge/Language-Kotlin-orange.svg)](https://kotlinlang.org/)
+[![Aesthetic](https://img.shields.io/badge/Aesthetic-Monarch-magenta.svg)](#-monarch-mode--authority)
 
-## 🌟 The Core Concept
+> **"Congratulations. You have become a Player."**
 
-Awaken as a Player. Through the **System**, everything you do in real life rewards you with XP, ranks, and stat boosts. But be warned: the System is strict. Failure to keep up with daily quests or safely conquer gates results in penalties—and potentially losing your hard-earned endurance (HP).  
+Solo Leveling: The System is a hyper-immersive, gamified productivity engine for Android. It transforms your real-world effort into a high-stakes RPG experience, enforcing discipline through the "System's" absolute authority. This is not just a habit tracker; it is your path to becoming a Monarch.
 
-## 🔥 Features & Mechanics
+---
 
-### 1. The Awakening & Contract
-Upon first launching the system, you undergo **The Awakening**. Choose your starting Class—**Student**, **Athlete**, **Executive**, or **Custom**—which defines your initial paths and stat priorities. Before proceeding, you must sign The Contract and agree to follow the System's commands.
+## ⚡ The Core Directives
 
-### 2. Player Stats & Progression
-Your growth is tracked across a complex RPG system, progressing from **E-Rank** up to **S-Rank** and beyond:
-- **Fitness** (Strength)
-- **Knowledge** (Intelligence)
-- **Discipline** (Vitality)
-- **Awareness** (Agility)
-- **Charisma** 
-- **Luck**
-Manage your **Endurance** (your HP) carefully; failure brings you closer to zero.
+The System tracks every action. Success brings growth, XP, and rank advancement (from **E-Rank** to **S-Rank** and beyond). Failure is not ignored—the System enforces penalties for those who neglect their Quests or retreat from Gates.
 
-### 3. Quests (Daily Routines)
-The System assigns you daily routines formatted as Quests. Each Quest maps to a specific stat. 
-- Complete them to earn stat points, XP, and rank up.
-- Ignore them, and the System puts you into a Penalty State, affecting your growth and punishing you! 
+### 🎭 1. The Awakening & The Contract
+Your journey begins with **The Awakening**. 
+- **Role Selection:** Choose your class—*Student, Athlete, Executive,* or *Custom*—each with unique starting stat modifiers.
+- **The Great Contract:** You must accept the System's terms. Once signed, the System's commands are absolute.
+- **System Boot:** A high-intensity initialization sequence prepares your "Player" status.
 
-### 4. Gates (Strict Focus Sessions)
-Gates represent dedicated focus sessions. You must "Survive" for the required time limit.
-- **Red Gates Detection:** Randomly, ordinary Gates upgrade to perilous Red Gates.
-- **Retreat is Impossible:** The app enforces strict screen tracking. If you leave the app while inside a Gate, you instantly fail. If the user yields or loses focus, "Gate Collapsed" is triggered and the rewards are lost.
+### 📊 2. Player Stats & Progression Engine
+A robust, type-safe stat system tracks your evolution across:
+- **Fitness (STR):** Physical activity and health.
+- **Knowledge (INT):** Learning and mental growth.
+- **Discipline (VIT):** Consistency and routine.
+- **Awareness (AGI):** Focus and reaction time.
+- **Charisma (CHA):** Social and leadership milestones.
+- **Luck (LCK):** The hidden factor in rewards and gate events.
 
-### 5. Boss Raids (Major Goals)
-Bosses represent massive real-life milestones. Defeating them isn't easy; you need to meet the **Required Level** and **Stat-Checks** to win before the Due Date. Completing a boss raid gives you massive XP rewards and a chance to harvest their soul.
+### ⚔️ 3. The Gates (Strict Focus Sessions)
+Gates are high-stakes focus sessions managed by the `GateFocusService`.
+- **System Does Not Permit Retreat:** Once you enter a Gate, leaving the app triggers an immediate "Gate Collapse."
+- **Red Gates:** There is a 15% chance a Gate will turn into a **Red Gate**, doubling both rewards and the risk of penalty.
+- **Immersive Feedback:** Real-time haptics and screen-shake effects simulate the intensity of the dungeon.
 
-### 6. Shadow Extraction (Voice Command)
-Once you defeat a Boss, you can extract its Shadow to serve you. 
-The System features real **Voice Recognition**: You actually have to speak the legendary command **"ARISE"** into your microphone to succeed. Unlocked Shadows provide you with permanent passive stat multipliers and boosts.
+### 🐲 4. Boss Raids & Shadow Extraction
+Major real-life goals are categorized as **Boss Raids**.
+- **Qualification Checks:** You cannot engage a Boss without meeting specific Level and Stat requirements.
+- **Permanent Logging:** Every victory or defeat is etched into the System's history.
+- **"ARISE":** Upon defeating a Boss, use your actual voice to command **"ARISE"**. The `SpeechRecognizer` API validates your authority, allowing you to extract the Boss's shadow for permanent passive multipliers.
 
-### 7. Monarch Mode & Authority
-Endgame progression system. Clear enough Gates and scale enough Bosses, and slowly transition into the role of a Monarch.
+### 👑 5. Monarch Mode & Authority
+The ultimate endgame state for those who reach the pinnacle.
+- **Monarch Authority:** Absolute immunity to standard penalties.
+- **System Multiplier:** A 2.0x stat growth multiplier across all activities.
+- **Shadow Loyalty:** Locked shadow persistence and enhanced visual "Gold/Magenta" aesthetics.
+- **System Obedience:** A total UI overhaul reflecting your status as the Monarch.
 
-## 🚀 Tech Stack
-- **Languages:** Kotlin
-- **Architecture:** MVVM, Clean Architecture
-- **Database:** Room Database (Offline-First capability)
-- **UI:** Android XML / Material Design Components
-- **APIs:** Android SpeechRecognizer API (for Voice Commands)
-- **Platform:** Android 
+---
 
-## 🛠️ Installation & Setup
-To run this project locally, simply clone the repository and open it in Android Studio:
-1. **Clone the repository:**
+## 🎨 System UX & Immersion
+The System is designed to be felt, not just seen:
+- **Level Up Ceremony:** Dynamic particle effects and screen-shake for every rank increase.
+- **Glitch Effects:** Visual "System Errors" and glitch animations during high-stress resets or penalty triggers.
+- **Haptic Feedback:** Tactile responses for critical system events.
+- **Deep Immersion:** Navigation is blocked during high-stakes activities to ensure absolute focus.
+
+---
+
+## 🛠️ Technical Architecture
+- **Language:** 100% Kotlin
+- **Framework:** MVVM with Clean Architecture principles.
+- **State Management:** Background-resilient focus tracking using `ForegroundServices`.
+- **Persistence:** Atomic updates via Room Database, ensuring no progress is lost.
+- **Reliability:** `WorkManager` integration for precision midnight system resets and penalty calculations.
+- **Interactions:** Android `SpeechRecognizer` for voice-activated commands.
+
+---
+
+## 🚀 Initialization
+To install the System on your device:
+
+1. **Clone the Source:**
    ```bash
    git clone https://github.com/pranavbairollu/SoloLeveling.git
    ```
-2. **Open in Android Studio:**
-   - Launch Android Studio and click on `Open`.
-   - Select the `SoloLeveling` folder.
-3. **Sync & Build:**
-   - Wait for Gradle to finish syncing the dependencies.
-   - Build the project and run it on an Android Emulator or a physical device.
-
-**Note:** Ensure that in-app permissions (such as Microphone for Shadow Extraction) are granted when prompted!
-
-## 📜 Disclaimer
-This project is an unofficial fan-made productivity tool heavily inspired by the "Solo Leveling" series. It is not affiliated with, endorsed by, or sponsored by the original creators, publishers, or copyright holders of Solo Leveling.
+2. **Launch in Android Studio:**
+   - Open the project directory.
+   - Wait for the Gradle sync (Syncing the System's logic).
+3. **Deploy:**
+   - Run on a physical device for full Haptic and Voice recognition support.
+   - Grant **Microphone** and **Notification** permissions when prompted by the System.
 
 ---
-*“There is no turning back. From now on, you will level up.”*
+
+## 📜 System Disclaimer
+*This is an unofficial fan project inspired by "Solo Leveling". It is a productivity tool and is not affiliated with the official franchise owners.*
+
+---
+<p align="center">
+  <b>"The System will use you, and you will use the System."</b><br>
+  <i>Will you remain a weak hunter, or will you level up?</i>
+</p>
