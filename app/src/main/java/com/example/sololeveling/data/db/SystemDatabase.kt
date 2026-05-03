@@ -17,6 +17,8 @@ import com.example.sololeveling.data.dao.ShadowDao
 import com.example.sololeveling.data.entity.ShadowEntity
 import com.example.sololeveling.data.dao.MonarchDao
 import com.example.sololeveling.data.entity.MonarchEntity
+import com.example.sololeveling.util.SecurityUtils
+import net.sqlcipher.database.SupportFactory
 
 @Database(entities = [UserEntity::class, QuestEntity::class, GateEntity::class, BossEntity::class, ShadowEntity::class, MonarchEntity::class], version = 8, exportSchema = false)
 abstract class SystemDatabase : RoomDatabase() {
@@ -87,11 +89,13 @@ abstract class SystemDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): SystemDatabase {
             return INSTANCE ?: synchronized(this) {
+                val factory = SupportFactory(SecurityUtils.getDatabasePassphrase(context))
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     SystemDatabase::class.java,
                     "system_database"
                 )
+                .openHelperFactory(factory)
                 .addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .build()
                 INSTANCE = instance

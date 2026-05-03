@@ -7,6 +7,8 @@ import com.example.sololeveling.data.repository.QuestRepository
 import com.example.sololeveling.data.repository.UserRepository
 import com.example.sololeveling.data.repository.BossRepository
 import com.example.sololeveling.data.repository.ShadowRepository
+import com.example.sololeveling.util.SecurityUtils
+import android.util.Log
 
 class SoloLevelingApp : Application() {
 
@@ -19,6 +21,15 @@ class SoloLevelingApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        
+        // System Integrity Check
+        if (SecurityUtils.isDeviceRooted()) {
+            Log.e("SoloLevelingSystem", "CRITICAL WARNING: Root Access Detected. System Integrity Compromised.")
+        }
+        if (SecurityUtils.isRunningOnEmulator()) {
+            Log.w("SoloLevelingSystem", "WARNING: Running on Simulation (Emulator). Data may be unstable.")
+        }
+
         com.example.sololeveling.worker.MidnightResetWorker.schedule(this)
     }
 }

@@ -2,9 +2,19 @@ package com.example.sololeveling.data.pref
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import com.example.sololeveling.util.SecurityUtils
 
 class UserPreferences(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("solo_leveling_prefs", Context.MODE_PRIVATE)
+    private val masterKey = SecurityUtils.getOrCreateMasterKey(context)
+    
+    private val prefs: SharedPreferences = EncryptedSharedPreferences.create(
+        context,
+        "solo_leveling_secure_prefs",
+        masterKey,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
 
     companion object {
         private const val KEY_USER_CLASS = "user_class"

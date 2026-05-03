@@ -59,6 +59,18 @@ The System is designed to be felt, not just seen:
 
 ---
 
+## 🛡️ Security & System Integrity
+
+The "System" is protected by production-grade security protocols to prevent unauthorized data manipulation and ensure that your growth is authentic.
+
+- **Absolute Data Encryption:** The core database is encrypted via **SQLCipher (AES-256)**. Stats, levels, and shadow data are unreadable by external tools.
+- **Secure Persistence:** Sensitive user settings and class data are stored in hardware-backed **EncryptedSharedPreferences**.
+- **Extraction Prevention:** ADB backups are disabled to prevent unauthorized data cloning or side-loading stat modifications.
+- **System Integrity Checks:** The System monitors for compromised environments. If root access or emulator simulation is detected, the System logs a "Critical Integrity Compromised" warning.
+- **Code Hardening:** The codebase is obfuscated via **R8/ProGuard**, protecting the "System's" inner workings from reverse engineering.
+
+---
+
 ## 🛠️ Technical Architecture
 - **Language:** 100% Kotlin
 - **Framework:** MVVM with Clean Architecture principles.
