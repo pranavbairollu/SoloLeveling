@@ -24,7 +24,7 @@ class SystemNotificationView @JvmOverloads constructor(
     private var isAnimating = false
 
     enum class Type {
-        INFO, WARNING, SUCCESS
+        INFO, WARNING, SUCCESS, MONARCH
     }
 
     init {
@@ -46,9 +46,10 @@ class SystemNotificationView @JvmOverloads constructor(
             return
         }
 
-        // Priority Logic: WARNING overrides everything. INFO/SUCCESS cannot override WARNING.
-        if (visibility == View.VISIBLE && currentType == Type.WARNING && type != Type.WARNING) {
-            return // Ignore
+        // Priority Logic: MONARCH > WARNING > everything else.
+        if (visibility == View.VISIBLE) {
+            if (currentType == Type.MONARCH && type != Type.MONARCH) return
+            if (currentType == Type.WARNING && type == Type.INFO) return 
         }
 
         // Cancel any pending dismiss
@@ -57,21 +58,29 @@ class SystemNotificationView @JvmOverloads constructor(
         currentType = type
         currentMessage = message
         
-        // Use post to ensure layout is ready if needed, but usually immediate call is fine
         // Apply Style
         val bgRes = when (type) {
             Type.INFO -> R.drawable.bg_notification_info
             Type.WARNING -> R.drawable.bg_notification_warning
             Type.SUCCESS -> R.drawable.bg_notification_success
-        }
-        val textColor = when (type) {
-            Type.INFO -> R.color.system_neon_blue
-            Type.WARNING -> R.color.system_danger_red
-            Type.SUCCESS -> R.color.system_neon_gold
+            Type.MONARCH -> R.drawable.bg_notification_success // Reuse gold-base if available
         }
         
         container.setBackgroundResource(bgRes)
-        tvMessage.setTextColor(ContextCompat.getColor(context, textColor))
+        
+        if (type == Type.MONARCH) {
+            tvMessage.setTextColor(android.graphics.Color.parseColor("#FFD700")) // Gold
+            container.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#800080")) // Purple/Magenta base
+        } else {
+            val textColor = when (type) {
+                Type.INFO -> R.color.system_neon_blue
+                Type.WARNING -> R.color.system_danger_red
+                Type.SUCCESS -> R.color.system_neon_gold
+                else -> R.color.system_neon_gold
+            }
+            tvMessage.setTextColor(ContextCompat.getColor(context, textColor))
+            container.backgroundTintList = null
+        }
         
         if (visibility == View.VISIBLE) {
              // Slide up out -> Slide down in for fresh impact

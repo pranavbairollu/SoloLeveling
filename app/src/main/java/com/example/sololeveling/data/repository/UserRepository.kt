@@ -21,6 +21,8 @@ class UserRepository(private val userDao: UserDao) {
     }
     
     suspend fun decreaseEndurance(user: UserEntity, amount: Int = 1): Boolean {
+        if (user.isMonarch) return false // Monarch Immunity
+        
         // Return true if System Reset triggered
         val newEndurance = (user.endurance - amount).coerceAtLeast(0)
         
@@ -35,6 +37,13 @@ class UserRepository(private val userDao: UserDao) {
     }
     
     suspend fun processDailyEnduranceGain(user: UserEntity) {
+        if (user.isMonarch) {
+            // Monarchs are always at peak condition
+            if (user.endurance < user.maxEndurance) {
+                 updateUser(user.copy(endurance = user.maxEndurance))
+            }
+            return
+        }
         if (user.endurance < user.maxEndurance) {
             val gain = 5 // Bonus for completing all quests
             val newEndurance = (user.endurance + gain).coerceAtMost(user.maxEndurance)
@@ -43,6 +52,8 @@ class UserRepository(private val userDao: UserDao) {
     }
     
     suspend fun performSystemReset(user: UserEntity, discMult: Float = 1.0f) {
+        if (user.isMonarch) return // Immunity
+        
         // Level -1 (Min 1)
         val newLevel = (user.level - 1).coerceAtLeast(1)
         val newXp = 0L
@@ -81,19 +92,19 @@ class UserRepository(private val userDao: UserDao) {
         val user = getCurrentUser() ?: return
         
         // XP Calculation with Fitness/Knowledge Multiplier
-        val xpMultiplier = com.example.sololeveling.util.StatCalculator.calculateXpMultiplier(user.fitness, user.knowledge, fitMult * knlMult)
+        val xpMultiplier = com.example.sololeveling.util.StatCalculator.calculateXpMultiplier(user.fitness, user.knowledge, fitMult * knlMult, user.isMonarch)
         val bonusXp = (xpReward * xpMultiplier).toLong()
         
         var newXp = user.currentXP + bonusXp
         var newLevel = user.level
-        var requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, user.knowledge, knlMult)
+        var requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, user.knowledge, knlMult, user.isMonarch)
         var unspentPoints = user.unspentPoints
         
         // Level Up Check
         while (newXp >= requiredXp) {
             newXp -= requiredXp
             newLevel++
-            requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, user.knowledge, knlMult)
+            requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, user.knowledge, knlMult, user.isMonarch)
             unspentPoints += 3
         }
 
@@ -103,5 +114,19 @@ class UserRepository(private val userDao: UserDao) {
             unspentPoints = unspentPoints,
             hasClearedGateSincePromotion = true
         ))
+    }
+
+    suspend fun promoteToMonarch(user: UserEntity) {
+        val promotedUser = user.copy(
+            rank = "MONARCH",
+            isMonarch = true,
+            hasClearedGateSincePromotion = false,
+            hasDefeatedBossSincePromotion = false,
+            // Instant Peak Condition
+            endurance = user.maxEndurance,
+            penaltyEndTime = 0L,
+            penaltyStatReduction = 0
+        )
+        updateUser(promotedUser)
     }
 }

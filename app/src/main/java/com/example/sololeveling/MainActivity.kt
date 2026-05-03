@@ -179,14 +179,8 @@ class MainActivity : AppCompatActivity() {
 
                 binding.tvXpText.text = "${it.currentXP} / $requiredXp"
                 
-                if (it.isMonarch) {
-                    if (binding.tvPlayerName.text != "I AM THE MONARCH") {
-                         binding.tvPlayerName.setTextColor(android.graphics.Color.parseColor("#FFD700")) // Gold
-                         com.example.sololeveling.ui.common.AnimUtils.typewriter(binding.tvPlayerName, "I AM THE MONARCH")
-                    }
-                } else if (binding.tvPlayerName.text != "PRANAV") {
-                     // Initial Typewriter or Reset
-                     binding.tvPlayerName.setTextColor(android.graphics.Color.WHITE)
+                if (!it.isMonarch && binding.tvPlayerName.text != "PRANAV") {
+                     binding.tvPlayerName.setTextColor(getColor(R.color.system_blue))
                      com.example.sololeveling.ui.common.AnimUtils.typewriter(binding.tvPlayerName, "PRANAV")
                 }
                 
@@ -226,22 +220,18 @@ class MainActivity : AppCompatActivity() {
                     binding.tvXpText.text = "PENALTY ACTIVE (LOCKED)"
                     binding.tvXpText.setTextColor(getColor(R.color.system_red))
                     binding.progressBarXP.progressTintList = android.content.res.ColorStateList.valueOf(getColor(R.color.system_red))
+                } else if (it.isMonarch) {
+                    applyMonarchTheme(it)
                 } else {
-                    binding.tvPlayerName.setTextColor(if (it.isMonarch) android.graphics.Color.MAGENTA else getColor(R.color.system_blue)) 
+                    binding.tvPlayerName.setTextColor(getColor(R.color.system_blue)) 
                     binding.tvXpText.setTextColor(getColor(R.color.system_text_primary))
                     binding.progressBarXP.progressTintList = android.content.res.ColorStateList.valueOf(getColor(R.color.system_blue))
+                    binding.tvRank.setTextColor(android.graphics.Color.WHITE)
+                    binding.tvDailyQuestsTitle.text = "DAILY QUESTS"
                 }
                 
                 // Rank Display
                 binding.tvRank.text = "Rank: ${it.rank}"
-                if (it.isMonarch) {
-                    binding.tvRank.setTextColor(android.graphics.Color.YELLOW) // Gold
-                    binding.tvPlayerName.setTextColor(android.graphics.Color.MAGENTA) // Monarch Aura
-                    // Pulse Rank
-                    com.example.sololeveling.ui.common.AnimUtils.pulse(binding.tvRank, 1.1f, 1500)
-                } else {
-                     binding.tvRank.setTextColor(android.graphics.Color.WHITE)
-                }
             }
         }
 
@@ -294,6 +284,31 @@ class MainActivity : AppCompatActivity() {
                 com.example.sololeveling.ui.common.SystemNotifier.show(this@MainActivity, "SYSTEM DOES NOT PERMIT RETREAT", com.example.sololeveling.ui.common.SystemNotificationView.Type.WARNING)
             }
         })
+    }
+
+    private fun applyMonarchTheme(user: com.example.sololeveling.data.entity.UserEntity) {
+        adapter.isMonarch = true
+        
+        // Gold/Magenta Shift
+        binding.tvRank.setTextColor(android.graphics.Color.parseColor("#FFD700")) // Gold
+        binding.tvPlayerName.setTextColor(android.graphics.Color.parseColor("#FF00FF")) // Monarch Magenta
+        
+        if (binding.tvPlayerName.text != "I AM THE MONARCH") {
+             com.example.sololeveling.ui.common.AnimUtils.typewriter(binding.tvPlayerName, "I AM THE MONARCH")
+        }
+        
+        // Messaging Shift
+        binding.tvDailyQuestsTitle.text = "SYSTEM OBEDIENCE"
+        binding.tvDailyQuestsTitle.setTextColor(android.graphics.Color.parseColor("#FFD700"))
+        
+        // Aura Effects
+        if (binding.vMonarchAura.visibility != android.view.View.VISIBLE) {
+            binding.vMonarchAura.visibility = android.view.View.VISIBLE
+            com.example.sololeveling.ui.common.AnimUtils.glowPulse(binding.vMonarchAura)
+        }
+        
+        // Rank Pulse
+        com.example.sololeveling.ui.common.AnimUtils.pulse(binding.tvRank, 1.1f, 1500)
     }
     
     private fun showPenaltyDialog() {

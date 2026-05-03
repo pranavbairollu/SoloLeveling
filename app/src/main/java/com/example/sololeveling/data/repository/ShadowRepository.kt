@@ -126,7 +126,7 @@ class ShadowRepository(
     }
     
     suspend fun processDailyFailure(user: UserEntity) {
-        if (user.isMonarch) return
+        if (user.isMonarch) return // Monarch Authority: Shadows remain loyal regardless of failure
 
         // Check incomplete shadow quests for that date
         val failedQuests = questDao.getQuestsForDateSync(user.lastActiveDate).filter { !it.isCompleted && it.linkedStat.startsWith("SHADOW_") }
@@ -140,7 +140,6 @@ class ShadowRepository(
                     val newLoyalty = shadow.loyaltyLevel - 1
                     if (newLoyalty <= 0) {
                         shadowDao.updateShadow(shadow.copy(loyaltyLevel = 0, isActive = false))
-                        // "SHADOW HAS ABANDONED YOU" handled by UI observing this change ideally.
                     } else {
                         shadowDao.updateShadow(shadow.copy(loyaltyLevel = newLoyalty))
                     }
@@ -149,7 +148,9 @@ class ShadowRepository(
         }
     }
 
-    suspend fun reduceAllShadowsLoyalty() {
+    suspend fun reduceAllShadowsLoyalty(isMonarch: Boolean = false) {
+        if (isMonarch) return // Immunity
+        
         val shadows = shadowDao.getActiveShadowsSync()
         shadows.forEach { shadow ->
             val newLoyalty = shadow.loyaltyLevel - 1

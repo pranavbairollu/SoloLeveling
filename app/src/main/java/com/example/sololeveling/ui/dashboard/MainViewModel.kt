@@ -248,19 +248,19 @@ class MainViewModel(
                 val discMult = sMults.getOrDefault("Discipline", 1.0).toFloat()
 
                 // XP Calculation with Fitness/Knowledge Multiplier
-                val xpMultiplier = com.example.sololeveling.util.StatCalculator.calculateXpMultiplier(currentUser.fitness, currentUser.knowledge, fitMult * knlMult)
+                val xpMultiplier = com.example.sololeveling.util.StatCalculator.calculateXpMultiplier(currentUser.fitness, currentUser.knowledge, fitMult * knlMult, currentUser.isMonarch)
                 val bonusXp = (quest.xpReward * xpMultiplier).toLong()
                 
                 var newXp = currentUser.currentXP + bonusXp
                 var newLevel = currentUser.level
-                var requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, currentUser.knowledge, knlMult)
+                var requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, currentUser.knowledge, knlMult, currentUser.isMonarch)
                 var unspentPoints = currentUser.unspentPoints
                 
                 // Level Up Check
                 while (newXp >= requiredXp) {
                     newXp -= requiredXp
                     newLevel++
-                    requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, currentUser.knowledge, knlMult)
+                    requiredXp = com.example.sololeveling.util.StatCalculator.calculateRequiredXp(newLevel, currentUser.knowledge, knlMult, currentUser.isMonarch)
                     unspentPoints += 3
                 }
     
@@ -333,13 +333,7 @@ class MainViewModel(
     fun promoteToMonarch() {
          viewModelScope.launch {
             val user = userRepository.getCurrentUser() ?: return@launch
-            val promotedUser = user.copy(
-                rank = "MONARCH",
-                isMonarch = true,
-                hasClearedGateSincePromotion = false,
-                hasDefeatedBossSincePromotion = false
-            )
-            userRepository.updateUser(promotedUser)
+            userRepository.promoteToMonarch(user)
          }
     }
     
@@ -402,7 +396,7 @@ class MainViewModel(
         val discMult = sMults.getOrDefault("Discipline", 1.0).toFloat()
         
         userRepository.performSystemReset(user, discMult)
-        shadowRepository.reduceAllShadowsLoyalty()
+        shadowRepository.reduceAllShadowsLoyalty(user.isMonarch)
         
         // Fail active gate
         val activeGate = gateRepository.getActiveGateSync()
@@ -445,7 +439,7 @@ class MainViewModel(
                     val discMult = sMults.getOrDefault("Discipline", 1.0).toFloat()
 
                     // Recalculate Max HP (VIT)
-                    val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc, discMult)
+                    val newMaxHp = com.example.sololeveling.util.StatCalculator.calculateMaxHp(newDisc, discMult, user.isMonarch)
                     val hpDiff = newMaxHp - user.maxEndurance
                     val newHp = (user.endurance + hpDiff).coerceIn(0, newMaxHp) 
                     
