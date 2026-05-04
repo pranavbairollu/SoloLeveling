@@ -36,9 +36,16 @@
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_setup"
         app:layout_constraintTop_toBottomOf="@id/tvStepTitle"
-        app:layout_constraintBottom_toTopOf="@id/btnNext"
+        app:layout_constraintBottom_toTopOf="@id/barrierBottomButtons"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/barrierBottomButtons"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="top"
+        app:constraint_referenced_ids="btnBack,btnNext" />
 
     <Button
         android:id="@+id/btnBack"
